@@ -1,0 +1,937 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="仿照 Generative Agents 論文的喜馬拉雅山腳小鎮模擬">
+<title>貝瑪崗小鎮模擬</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a town map (the sandbox) on the left, an inspector for the agents' minds on the right; stacks on phones. */
+:root{
+  --bg:#edf0f2; --panel:#fbfcfc; --ink:#1c2330; --muted:#5a6473; --line:#d3d9df; --soft:#e4e9ed;
+  --maroon:#8e2434; --gold:#b87a0e; --blue:#2c6687; --green:#3d7a4a;
+  --display:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --body:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#10141b; --panel:#171d27; --ink:#e5e8ed; --muted:#9aa4b3; --line:#2a3342; --soft:#1f2632;
+  --maroon:#e0788a; --gold:#e5b04a; --blue:#79b3d6; --green:#7dc08c; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#10141b; --panel:#171d27; --ink:#e5e8ed; --muted:#9aa4b3; --line:#2a3342; --soft:#1f2632;
+  --maroon:#e0788a; --gold:#e5b04a; --blue:#79b3d6; --green:#7dc08c; color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;line-height:1.6;padding-inline:16px;padding-block:14px 28px}
+.wrap{max-width:1400px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+header{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;border-bottom:2px solid var(--ink);padding-bottom:10px}
+.brand h1{font-family:var(--display);font-weight:900;font-size:clamp(28px,4vw,40px);line-height:1.05;margin:0;letter-spacing:.04em}
+.brand h1 small{font-family:var(--mono);font-weight:400;font-size:13px;letter-spacing:.12em;color:var(--muted);margin-left:10px;text-transform:uppercase}
+.brand p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.clock{display:flex;align-items:baseline;gap:10px;font-family:var(--mono)}
+.clock .d{font-size:13px;color:var(--muted)}
+.clock .h{font-size:30px;font-weight:600;font-variant-numeric:tabular-nums}
+.clock .ph{font-family:var(--body);font-size:12px;color:var(--muted);min-width:4em}
+.controls{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+button,select{font:inherit;font-size:13px;color:var(--ink);background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--ink)}
+button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-visible,summary:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);min-width:5.5em}
+button:disabled{opacity:.5;cursor:default}
+label.tog{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+.main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
+@media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
+.mapbox{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+canvas{display:block;width:100%;height:auto;cursor:pointer;touch-action:manipulation}
+.legend{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-top:1px solid var(--line)}
+.chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:2px 10px 2px 2px;font-size:12.5px;background:var(--panel);cursor:pointer;color:var(--ink)}
+.chip img{width:26px;height:26px;border-radius:50%;border:2px solid;display:block}
+.chip[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink)}
+.status{padding:8px 12px;font-size:12.5px;color:var(--muted);border-top:1px solid var(--line);min-height:2.4em}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:10px;min-width:0;display:flex;flex-direction:column}
+.tabs{display:flex;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{border:0;border-radius:0;background:none;padding:10px 14px;color:var(--muted);border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button[aria-selected="true"]{color:var(--ink);border-bottom-color:var(--maroon);font-weight:700}
+.tabbody{padding:14px 16px;min-width:0}
+h2{font-family:var(--display);font-size:22px;margin:0;line-height:1.2;text-wrap:balance}
+h3{font-size:12px;letter-spacing:.12em;color:var(--muted);margin:0 0 6px;font-weight:700}
+.eyebrow{font-family:var(--mono);font-size:11.5px;color:var(--muted);letter-spacing:.06em}
+.ahead{display:flex;gap:12px;align-items:center;margin-bottom:10px}
+.avatar{width:58px;height:58px;border-radius:50%;border:3px solid;flex:none}
+.now{background:var(--soft);border-radius:8px;padding:8px 12px;margin-bottom:12px;font-size:13.5px}
+.now b{color:var(--maroon)}
+details{border-top:1px solid var(--line);padding:8px 0}
+details>summary{cursor:pointer;font-weight:700;font-size:13.5px;list-style:none;display:flex;justify-content:space-between;align-items:center;gap:8px}
+details>summary::-webkit-details-marker{display:none}
+details>summary::after{content:"＋";color:var(--muted);font-weight:400}
+details[open]>summary::after{content:"－"}
+details>.inner{padding-top:8px}
+.persona{font-size:13.5px;margin:0;max-width:65ch}
+.seedlist{margin:6px 0 0;padding-left:1.2em;font-size:13px;color:var(--muted)}
+.plan{list-style:none;margin:0;padding:0;font-size:13px}
+.plan li{display:grid;grid-template-columns:7.8em 1fr;gap:8px;padding:3px 6px;border-radius:5px}
+.plan li.cur{background:var(--soft);font-weight:700}
+.plan li.chg{color:var(--maroon)}
+.plan .tm{white-space:nowrap;font-family:var(--mono);font-size:12px;color:var(--muted);font-variant-numeric:tabular-nums}
+.steps{margin:4px 0 6px 7.8em;padding-left:14px;border-left:2px solid var(--line);font-size:12.5px;list-style:none}
+.steps li{display:block;padding:1px 0;color:var(--muted)}
+.steps li.cur{color:var(--ink);font-weight:700}
+.mem{list-style:none;margin:0;padding:0;max-height:360px;overflow-y:auto;font-size:13px}
+.mem li{display:grid;grid-template-columns:3.2em 1fr;gap:6px;padding:5px 0;border-bottom:1px dashed var(--line)}
+.mem .id{font-family:var(--mono);font-size:11.5px;color:var(--muted)}
+.mem .meta{font-family:var(--mono);font-size:11px;color:var(--muted)}
+.badge{display:inline-block;font-size:11px;padding:0 6px;border-radius:4px;margin-right:6px;border:1px solid currentColor;font-weight:500;line-height:1.5}
+.b-obs{color:var(--muted)} .b-chat{color:var(--blue)} .b-plan{color:var(--green)} .b-refl{color:var(--maroon)} .b-seed{color:var(--gold)} .b-inner{color:var(--maroon)}
+.mem li.refl{background:color-mix(in srgb,var(--maroon) 7%,transparent)}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+input[type=text],textarea{font:inherit;font-size:13.5px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:7px 10px;width:100%;min-width:0}
+.row input[type=text]{flex:1 1 12em;width:auto}
+.ret{list-style:none;margin:8px 0 0;padding:0;font-size:12.5px}
+.ret li{padding:6px 0;border-bottom:1px dashed var(--line)}
+.bars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr)) 3.4em;gap:6px;align-items:center;margin-top:3px;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.bar{height:6px;border-radius:3px;background:var(--soft);overflow:hidden;position:relative}
+.bar span{position:absolute;inset:0 auto 0 0;border-radius:3px}
+.bar.r span{background:var(--blue)} .bar.i span{background:var(--gold)} .bar.v span{background:var(--green)}
+.iv{display:flex;flex-direction:column;gap:8px;margin:8px 0;max-height:420px;overflow-y:auto}
+.q{align-self:flex-end;background:var(--ink);color:var(--bg);border-radius:10px 10px 2px 10px;padding:6px 10px;max-width:85%;font-size:13.5px}
+.a{align-self:flex-start;background:var(--soft);border-radius:10px 10px 10px 2px;padding:8px 12px;max-width:92%;font-size:13.5px;white-space:pre-wrap}
+.a small{display:block;color:var(--muted);font-size:11.5px;margin-top:4px;white-space:normal}
+.presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.presets button{font-size:12px;padding:3px 9px;border-radius:999px}
+.log{list-style:none;margin:0;padding:0;font-size:13px;max-height:640px;overflow-y:auto}
+.log li{padding:8px 0;border-bottom:1px solid var(--line)}
+.log .when{font-family:var(--mono);font-size:11.5px;color:var(--muted);margin-right:6px}
+.lines{margin:6px 0 0;padding:6px 10px;border-left:3px solid var(--line);font-size:13px}
+.lines p{margin:2px 0}
+.lines b{font-weight:700}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:10px 0 14px}
+.stat{border:1px solid var(--line);border-radius:8px;padding:8px 10px}
+.stat .v{font-family:var(--mono);font-size:22px;font-weight:600;font-variant-numeric:tabular-nums}
+.stat .l{font-size:12px;color:var(--muted)}
+.chartbox{overflow-x:auto}
+svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
+.who{width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px}
+.who th,.who td{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
+.who th{color:var(--muted);font-weight:500;font-size:11.5px}
+.tablewrap{overflow-x:auto}
+.summary{border:2px solid var(--maroon);border-radius:10px;padding:10px 14px;margin-bottom:12px}
+.summary p{margin:4px 0}
+.about p,.about li{max-width:65ch;font-size:13.5px}
+.about ol,.about ul{padding-left:1.3em}
+.tree{font-family:var(--mono);font-size:12px;white-space:pre;overflow-x:auto;background:var(--soft);padding:10px;border-radius:8px;color:var(--ink)}
+.note{font-size:12.5px;color:var(--muted)}
+.hidden{display:none!important}
+@media (prefers-reduced-motion: reduce){*{scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <div class="brand">
+    <h1>貝瑪崗<small>Pemagang</small></h1>
+    <p>喜馬拉雅山腳的生成式代理人小鎮 · 仿照 Park 等人〈Generative Agents〉（UIST 2023）的架構</p>
+  </div>
+  <div class="clock" aria-live="off"><span class="d" id="cDay">第1天</span><span class="h" id="cTime">06:00</span><span class="ph" id="cPhase">清晨</span></div>
+  <div class="controls">
+    <button class="primary" id="btnPlay">播放</button>
+    <button id="btnStep">前進 10 分鐘</button>
+    <select id="speed" aria-label="模擬速度"><option value="1">1 倍速</option><option value="2" selected>2 倍速</option><option value="4">4 倍速</option><option value="8">8 倍速</option></select>
+    <button id="btnReset">重新開始</button>
+    <label class="tog hidden" id="claudeTog"><input type="checkbox" id="useClaude"> 用 Claude 寫對話</label>
+  </div>
+</header>
+
+<div class="main">
+  <section class="mapbox" aria-label="小鎮地圖">
+    <canvas id="map" width="1000" height="680"></canvas>
+    <div class="legend" id="legend"></div>
+    <div class="status" id="status">按「播放」讓居民開始他們的一天。點地圖上的居民可以查看他的記憶、計畫與反思。</div>
+  </section>
+
+  <section class="panel">
+    <div class="tabs" role="tablist">
+      <button role="tab" data-tab="agent" aria-selected="true">居民</button>
+      <button role="tab" data-tab="log" aria-selected="false">事件紀錄</button>
+      <button role="tab" data-tab="diff" aria-selected="false">資訊擴散</button>
+      <button role="tab" data-tab="about" aria-selected="false">架構說明</button>
+    </div>
+
+    <div class="tabbody" id="tab-agent">
+      <div class="ahead"><div class="avatar" id="aAv"></div><div><div class="eyebrow" id="aMeta"></div><h2 id="aName"></h2></div></div>
+      <div class="now" id="aNow"></div>
+      <details open><summary>計畫（日計畫 → 小時區塊 → 10 分鐘動作）</summary><div class="inner" id="aPlan"></div></details>
+      <details open><summary>記憶流 <span class="eyebrow" id="aMemCount"></span></summary><div class="inner">
+        <div class="row"><input type="text" id="qMem" placeholder="輸入問題，看看會檢索出哪些記憶（例如：燈節茶會）"><button id="btnRet">檢索</button></div>
+        <ul class="ret" id="retOut"></ul>
+        <ul class="mem" id="aMem" style="margin-top:8px"></ul>
+      </div></details>
+      <details><summary>人設與種子記憶</summary><div class="inner" id="aPersona"></div></details>
+      <details open><summary>訪談這位居民</summary><div class="inner">
+        <p class="note" id="ivNote">和論文的評估方式一樣，用自然語言「訪談」居民：先從記憶流檢索相關記憶，再讓 Claude 以角色身分回答。</p>
+        <div class="presets" id="presets"></div>
+        <div class="iv" id="ivLog"></div>
+        <div class="row"><input type="text" id="ivQ" placeholder="問他一個問題…"><button id="btnAsk">發問</button><button id="btnStop" class="hidden">停止</button></div>
+      </div></details>
+      <details><summary>內心聲音與反思</summary><div class="inner">
+        <p class="note">論文中使用者可以用「內心聲音」影響代理人。你輸入的句子會以高重要性寫入他的記憶流；提到燈節茶會或參選時，他也會因此得知這件事。</p>
+        <div class="row"><input type="text" id="inner" placeholder="例如：你很想在燈節茶會上唱一首山歌"><button id="btnInner">寫入記憶</button></div>
+        <div class="row" style="margin-top:8px"><button id="btnReflect">立即反思</button><span class="note" id="reflNote"></span></div>
+      </div></details>
+    </div>
+
+    <div class="tabbody hidden" id="tab-log">
+      <div class="filters" id="logFilters">
+        <button data-f="all" aria-pressed="true">全部</button><button data-f="chat" aria-pressed="false">對話</button><button data-f="share" aria-pressed="false">消息傳遞</button><button data-f="refl" aria-pressed="false">反思</button><button data-f="plan" aria-pressed="false">計畫變更</button>
+      </div>
+      <ul class="log" id="log"></ul>
+    </div>
+
+    <div class="tabbody hidden" id="tab-diff">
+      <div id="sumBox"></div>
+      <div class="stats">
+        <div class="stat"><div class="v" id="sElec">1/10</div><div class="l">知道帕桑參選</div></div>
+        <div class="stat"><div class="v" id="sParty">1/10</div><div class="l">知道燈節茶會</div></div>
+        <div class="stat"><div class="v" id="sDens">0.40</div><div class="l">人際網路密度</div></div>
+      </div>
+      <h3>消息擴散（人數，每小時）</h3>
+      <div class="chartbox"><svg id="chart" viewBox="0 0 520 190" width="100%" role="img" aria-label="消息擴散折線圖"></svg></div>
+      <h3 style="margin-top:14px">人際網路（灰線：初始認識；紅線：模擬中新認識）</h3>
+      <svg id="net" viewBox="0 0 520 330" width="100%" role="img" aria-label="人際網路圖"></svg>
+      <h3 style="margin-top:10px">誰知道什麼</h3>
+      <div class="tablewrap"><table class="who" id="who"></table></div>
+    </div>
+
+    <div class="tabbody hidden about" id="tab-about">
+      <h2>這個小鎮怎麼運作</h2>
+      <p>貝瑪崗是一個虛構的喜馬拉雅山腳小鎮，住著十位居民。模擬從第 1 天早上 6 點跑到第 2 天晚上 11 點，每一步是遊戲時間 10 分鐘。兩個種子事件和論文一樣，只寫在一個人的人設裡：</p>
+      <ul>
+        <li><b>卓瑪</b>打算在第 2 天傍晚 5 點於茶館辦燈節茶會（對應論文中伊莎貝拉的情人節派對）。</li>
+        <li><b>帕桑</b>打算參選村代表，但還沒告訴任何人（對應論文中山姆參選鎮長）。</li>
+      </ul>
+      <p>之後誰會知道、誰會出席，全看居民在哪裡碰面、聊了什麼、記不記得。</p>
+      <h3>論文架構的對應</h3>
+      <ol>
+        <li><b>記憶流</b>：每位居民的觀察、對話、計畫與反思都以自然語言記錄，附時間戳記和 1–10 的重要性。</li>
+        <li><b>檢索</b>：分數 = 新近性 + 重要性 + 相關性（三項各自正規化後相加）。新近性以每遊戲小時 0.995 衰減；相關性用關鍵詞與中文字雙字組的相似度估算。</li>
+        <li><b>反思</b>：近期記憶的重要性累計超過門檻時，居民會提出焦點問題、檢索相關記憶，寫下附有依據編號的高層次洞見。</li>
+        <li><b>計畫</b>：每天早上從人設產生日計畫，再遞迴拆成小時區塊和 10 分鐘動作；答應赴約、聽到內心聲音都會改寫計畫。</li>
+        <li><b>反應與對話</b>：在同一地點碰面時，居民依熟識度、個性與「有沒有消息想說」決定是否交談，交談內容會寫回雙方的記憶流。</li>
+      </ol>
+      <h3>哪些部分用到 Claude</h3>
+      <p>為了能連續跑兩天，行為引擎在瀏覽器內用規則模擬。下面三件事可以交給 Claude，會使用你自己的 Claude 額度，第一次使用時會先詢問：<b>訪談居民</b>、<b>用 Claude 寫對話</b>（開啟後，每段對話都會暫停模擬等待生成）、<b>讓 Claude 反思</b>。</p>
+      <h3>場景樹（論文以樹狀結構描述環境）</h3>
+      <div class="tree" id="tree"></div>
+    </div>
+  </section>
+</div>
+</div>
+
+<script>
+(function(){
+"use strict";
+/* ============ World ============ */
+const DAY=1440, T0=360, TEND=DAY+23*60, REFL_TH=34;
+const LOC={
+  gompa:{name:'貝瑪寺',x:150,y:190,subs:['大殿','經堂','轉經廊'],kind:'gompa'},
+  ridge:{name:'經幡山脊',x:400,y:175,subs:['經幡步道','觀景台'],kind:'ridge'},
+  teagarden:{name:'山坡茶園',x:830,y:238,subs:['上層梯田','下層梯田','採茶棚'],kind:'tea'},
+  factory:{name:'製茶廠',x:880,y:370,subs:['萎凋室','揉捻機旁','烘乾間'],kind:'factory'},
+  school:{name:'貝瑪崗小學',x:265,y:345,subs:['教室','操場','教師辦公桌'],kind:'school'},
+  teahouse:{name:'卓瑪茶館',x:530,y:360,subs:['櫃台','灶台','露台座位'],kind:'teahouse'},
+  lodge:{name:'雪豹客棧',x:715,y:420,subs:['客棧廚房','櫃台','客房'],kind:'lodge'},
+  market:{name:'市集廣場',x:420,y:480,subs:['菜攤','瑪雅的粉攤','廣場空地'],kind:'market'},
+  health:{name:'衛生站',x:650,y:545,subs:['診間','藥櫃','候診長椅'],kind:'health'},
+  bus:{name:'郵局與巴士站',x:505,y:615,subs:['郵務櫃台','售票窗口','候車棚'],kind:'bus'},
+  mill:{name:'水磨坊',x:175,y:505,subs:['石磨旁','磨坊前的院子','小屋'],kind:'mill'},
+  h_gurung:{name:'古隆家石屋',x:305,y:590,subs:['廚房','客廳','臥室'],kind:'house'},
+  h_rai:{name:'拉伊家',x:850,y:590,subs:['廚房','書桌','臥室'],kind:'house'}
+};
+const ROADS=[['bus','market'],['bus','health'],['market','teahouse'],['teahouse','lodge'],['lodge','health'],['lodge','factory'],['factory','teagarden'],['teahouse','ridge'],['ridge','gompa'],['market','school'],['school','gompa'],['market','mill'],['market','h_gurung'],['health','h_rai'],['school','h_gurung']];
+
+/* activities: abbr for map bubble, importance when started, sub-steps [sub-area index, text] */
+const ACT={
+  wake:{ab:'起床',imp:1,st:[[2,'起床梳洗'],[1,'煮一壺奶茶'],[0,'整理今天要用的東西']]},
+  breakfast:{ab:'早餐',imp:1,st:[[0,'吃早餐'],[1,'喝奶茶']]},
+  serve:{ab:'奶茶',imp:2,st:[[1,'煮一大壺酥油茶'],[0,'招呼客人點餐'],[2,'替露台的客人倒茶'],[0,'記帳'],[1,'揉麵準備做 momo']]},
+  lunch:{ab:'午餐',imp:2,st:[[0,'吃扁豆飯'],[2,'邊吃邊看山景']]},
+  shop:{ab:'採買',imp:2,st:[[0,'挑新鮮的蔬菜'],[1,'跟攤販聊價錢'],[2,'提著菜籃往回走']]},
+  close:{ab:'收拾',imp:1,st:[[1,'洗茶壺'],[0,'清點今天的收入'],[2,'把椅子搬進屋']]},
+  partyprep:{ab:'備會',imp:5,st:[[0,'買萬壽菊花環'],[1,'挑選酥油燈'],[0,'訂一大桶牛奶']]},
+  partydeco:{ab:'佈置',imp:5,st:[[2,'把萬壽菊掛在露台'],[0,'排好酥油燈'],[1,'煮一大鍋奶茶']]},
+  party:{ab:'茶會',imp:6,st:[[2,'點亮酥油燈'],[0,'和鄰居舉杯'],[2,'一起唱山歌'],[1,'分享 sel roti 甜甜圈']]},
+  lodgework:{ab:'客棧',imp:2,st:[[0,'替登山客準備早餐'],[1,'辦理退房'],[2,'整理客房'],[1,'登記新到的登山客']]},
+  campaign:{ab:'拜訪',imp:3,st:[[0,'和鄰居打招呼'],[2,'聽大家抱怨山路'],[1,'在筆記本記下村民的意見']]},
+  teatime:{ab:'喝茶',imp:2,st:[[2,'喝一杯熱奶茶'],[2,'看報紙'],[2,'看看窗外的雪山']]},
+  evening:{ab:'晚間',imp:1,st:[[0,'吃晚飯'],[1,'和家人聊天'],[1,'聽收音機']]},
+  help:{ab:'幫忙',imp:2,st:[[0,'幫忙煎蛋餅'],[1,'替登山客指路']]},
+  guidetrain:{ab:'帶路',imp:3,st:[[0,'帶登山客走經幡步道'],[1,'在觀景台介紹山峰名字'],[0,'練習用英文解說']]},
+  stroll:{ab:'閒逛',imp:1,st:[[2,'在廣場閒逛'],[0,'看看今天的蔬果']]},
+  teach:{ab:'上課',imp:3,st:[[0,'教尼泊爾語'],[0,'教乘法'],[1,'帶孩子們做早操'],[0,'聽孩子們朗讀']]},
+  grade:{ab:'批改',imp:2,st:[[2,'批改作業'],[2,'整理下週的教案']]},
+  cook:{ab:'做飯',imp:1,st:[[0,'洗菜'],[0,'煮達八（扁豆湯）'],[0,'炒青菜']]},
+  prep:{ab:'備課',imp:1,st:[[1,'備課'],[1,'和蘇曼聊今天的事']]},
+  foreman:{ab:'採茶',imp:3,st:[[0,'巡視上層梯田'],[1,'指導採茶工一芯二葉'],[2,'秤今天的鮮葉']]},
+  factory:{ab:'製茶',imp:3,st:[[0,'檢查萎凋的程度'],[1,'看管揉捻機'],[2,'控制烘乾的火候']]},
+  clinic:{ab:'看診',imp:3,st:[[0,'替咳嗽的老人看診'],[1,'清點藥櫃'],[2,'替孩子量體溫'],[0,'寫病歷']]},
+  study:{ab:'讀書',imp:2,st:[[1,'讀藥理學'],[1,'做考古題']]},
+  prayer:{ab:'誦經',imp:2,st:[[0,'帶小沙彌誦經'],[0,'點酥油燈供佛']]},
+  monkteach:{ab:'講經',imp:2,st:[[1,'教小沙彌讀經'],[1,'解釋經文的意思']]},
+  flags:{ab:'經幡',imp:3,st:[[0,'取下褪色的經幡'],[0,'掛上新的五色經幡'],[1,'在觀景台靜坐片刻']]},
+  blessing:{ab:'祈福',imp:3,st:[[2,'為村民祈福'],[0,'和攤販聊天']]},
+  meditate:{ab:'打坐',imp:2,st:[[1,'打坐'],[2,'繞轉經廊']]},
+  mill:{ab:'磨粉',imp:2,st:[[0,'把玉米倒進石磨'],[1,'檢查水車'],[0,'裝袋磨好的玉米粉']]},
+  sell:{ab:'擺攤',imp:2,st:[[1,'擺出玉米粉和小米粉'],[1,'招呼客人'],[1,'和鄰居聊八卦']]},
+  spin:{ab:'紡毛',imp:1,st:[[1,'紡羊毛'],[1,'哼山歌']]},
+  post:{ab:'郵務',imp:2,st:[[0,'分信'],[1,'賣巴士票'],[0,'登記包裹'],[2,'等巴士進站']]},
+  football:{ab:'足球',imp:2,st:[[2,'和朋友踢足球'],[2,'在場邊休息']]},
+  research:{ab:'調查',imp:3,st:[[0,'記錄老茶樹的葉形'],[1,'拍攝採茶的手法'],[2,'訪問採茶工']]},
+  interview:{ab:'訪談',imp:3,st:[[0,'訪談萎凋室的師傅'],[1,'記錄揉捻的時間'],[2,'聞烘乾後的茶香']]},
+  notes:{ab:'筆記',imp:2,st:[[2,'整理田野筆記'],[1,'把照片分類']]},
+  postcard:{ab:'寫信',imp:1,st:[[2,'寫明信片寄回台灣'],[2,'喝一杯奶茶']]},
+  sleep:{ab:'睡覺',imp:1,st:[[2,'睡覺']]}
+};
+const WORK=new Set(['clinic','post','foreman','factory','research','interview','meditate','lodgework','mill','teach']);
+const NOCHAT=new Set(['sleep','meditate','prayer','teach']);
+
+/* ============ Personas (paragraph with semicolon-delimited seed memories, as in the paper) ============ */
+const P=[
+ {id:'dolma',name:'卓瑪',full:'卓瑪·雪巴',age:42,job:'茶館老闆娘',color:'#b8323f',home:'teahouse',sleep:22,social:.95,gossip:.7,tib:true,
+  persona:'卓瑪·雪巴是貝瑪崗「卓瑪茶館」的老闆娘，四十二歲，每天清晨五點半起床煮第一壺酥油茶；卓瑪個性熱情外向，最喜歡把鎮上的人聚在一起；卓瑪打算在明天（第二天）傍晚五點於茶館舉辦燈節茶會，想邀請越多鄰居越好；卓瑪和開水磨坊的瑪雅婆婆是二十年的老朋友；卓瑪覺得帕桑做事可靠，但有時太愛講大道理；卓瑪的丈夫三年前在山難中過世，她獨自經營茶館；卓瑪很疼愛常來吃午餐的妮瑪',
+  short:'熱情好客，總是把大家聚在一起',
+  view:'帕桑參選是好事，他做事可靠，山路修好了茶館也會受惠。',onE:'帕桑做事可靠，要是真的能把山路修好，我的茶館也會受惠。',
+  talk:['今天的奶茶我多加了一點荳蔻，你等等要不要來一杯？','最近登山客變多了，茶館的桌子都快不夠坐。','雲層這麼低，下午大概又要下雨了。'],
+  routine:[[6,7,'teahouse','wake','起床，在灶台煮第一壺奶茶'],[7,12,'teahouse','serve','招呼早上的客人'],[12,13,'teahouse','lunch','吃午飯'],[13,15,'market','shop','到市集採買茶葉和牛奶'],[15,21,'teahouse','serve','招呼午後的客人'],[21,22,'teahouse','close','收拾茶館']],
+  day2:[[13,16,'market','partyprep','為燈節茶會買萬壽菊和酥油燈'],[16,17,'teahouse','partydeco','佈置茶館、準備燈節茶會'],[17,19,'teahouse','party','主持燈節茶會'],[19,21,'teahouse','serve','招呼茶會後留下的客人']]},
+ {id:'pasang',name:'帕桑',full:'帕桑·塔芒',age:55,job:'雪豹客棧老闆',color:'#2b5f86',home:'lodge',sleep:21.5,social:.75,gossip:.5,tib:true,
+  persona:'帕桑·塔芒是雪豹客棧的老闆，五十五歲，年輕時當了二十年的登山挑夫；帕桑打算參選下一屆的村代表，希望爭取經費修好通往巴士站的山路和村裡的自來水管；帕桑還沒有把參選的事告訴任何人，想找機會親口跟鄰居說；帕桑和女兒妮瑪住在客棧裡；帕桑很敬重格桑喇嘛；帕桑和製茶廠的蘇曼常為了觀光和茶園誰比較重要而爭論；帕桑說話慢，喜歡用登山的故事打比方',
+  short:'沉穩可靠，說起登山的故事就停不下來',view:'',onE:'',
+  talk:['昨天有一隊德國登山客說，經幡山脊是他們走過最美的路。','山路那段坍方還沒修好，巴士又要誤點了。','年輕時我背著三十公斤走到南崎巴札，現在上個坡都會喘。'],
+  routine:[[6,7,'lodge','wake','起床，在客棧廚房泡茶'],[7,10,'lodge','lodgework','照顧登山客的早餐與退房'],[10,12,'market','campaign','在市集和鄰居打招呼、聊村裡的事'],[12,13,'lodge','lunch','吃午飯'],[13,16,'lodge','lodgework','整理客房、登記新到的登山客'],[16,18,'teahouse','teatime','在茶館喝茶看報'],[18,21.5,'lodge','evening','和家人吃晚飯']],
+  day2:[[10,12,'bus','campaign','在巴士站和等車的村民聊村裡的事']]},
+ {id:'nima',name:'妮瑪',full:'妮瑪·塔芒',age:19,job:'登山嚮導學徒',color:'#d0782a',home:'lodge',sleep:22,social:.85,gossip:.6,tib:true,
+  persona:'妮瑪·塔芒十九歲，是帕桑的女兒，正在學習帶登山客走經幡山脊的路線；妮瑪活潑、好奇，夢想有一天帶隊到安娜普納基地營；妮瑪中午常到卓瑪茶館吃飯，卓瑪待她像親生女兒；妮瑪和郵局的比卡什是從小一起長大的朋友；妮瑪最近在跟台灣來的曉雯學一點中文；妮瑪覺得父親太保守，但很崇拜他年輕時的登山經歷',
+  short:'活潑好奇，對什麼都充滿熱情',view:'我為爸爸參選感到驕傲，雖然他有時很老派。',onE:'爸爸終於說出口了！他有點老派，但他真的很了解這座山。',
+  talk:['今天在山脊上看到魚尾峰了，雲一下子就散開！','我昨天學會用中文說「謝謝」和「好喝」了。','我想存錢去考正式的登山嚮導執照。'],
+  routine:[[6,7,'lodge','wake','起床'],[7,9,'lodge','help','幫忙客棧準備早餐'],[9,12,'ridge','guidetrain','帶登山客走經幡山脊，練習當嚮導'],[12,13,'teahouse','lunch','在卓瑪茶館吃午餐'],[13,16,'ridge','guidetrain','下午再帶一團登山客上山脊'],[16,18,'market','stroll','在市集廣場閒逛'],[18,22,'lodge','evening','在客棧吃晚飯']]},
+ {id:'lhamo',name:'拉姆',full:'拉姆·古隆',age:34,job:'小學老師',color:'#6d4a9e',home:'h_gurung',sleep:22,social:.5,gossip:.35,
+  persona:'拉姆·古隆是貝瑪崗小學的老師，三十四歲，教尼泊爾語和數學；拉姆認真、細心，每天晚上都會備課到十點；拉姆和丈夫蘇曼住在學校下方的石屋裡；拉姆一直希望村裡能有一間小圖書館；拉姆每天放學後會去市集買菜；拉姆很欣賞格桑喇嘛的智慧，常請他到學校講故事；拉姆覺得村裡的公共事務應該多聽聽女性的聲音',
+  short:'認真細心，很關心孩子們的教育',view:'帕桑參選的話，我希望他能多聽聽女性和老師的意見。',onE:'如果他願意在村務會議上多聽聽女性和老師的意見，我會考慮支持。',
+  talk:['班上有個孩子數學很好，可惜家裡要他去茶園幫忙。','要是村裡有一間圖書館就好了，孩子們都沒書可看。','這星期要考乘法表，孩子們都很緊張。'],
+  routine:[[6,7,'h_gurung','wake','起床'],[7,8,'h_gurung','breakfast','吃早餐'],[8,15,'school','teach','在學校上課'],[15,16,'school','grade','批改作業'],[16,17,'market','shop','到市集買菜'],[17,19,'h_gurung','cook','煮晚餐'],[19,22,'h_gurung','prep','備課、和蘇曼聊天']]},
+ {id:'suman',name:'蘇曼',full:'蘇曼·古隆',age:38,job:'茶園工頭',color:'#2f7a47',home:'h_gurung',sleep:22,social:.4,gossip:.25,
+  persona:'蘇曼·古隆是山坡茶園的工頭，三十八歲，上午在茶園監督採茶，下午在製茶廠看管揉捻和烘乾；蘇曼務實、話不多，但對茶的品質非常挑剔；蘇曼是老師拉姆的丈夫；蘇曼下工後習慣到卓瑪茶館喝一杯熱奶茶；蘇曼認為村子的未來在茶葉，不在觀光客；蘇曼常和客棧的帕桑為了觀光和茶園誰比較重要而爭論；蘇曼最近在帶台灣來的研究生曉雯認識茶樹品種',
+  short:'務實寡言，對茶的品質一絲不苟',view:'我不看好帕桑參選，他太偏向觀光業，不懂茶園。',onE:'帕桑？他只會想著客棧和觀光客，茶園的事他懂多少？',
+  talk:['今年秋茶的香氣很好，就是雨來得太早。','製茶廠的揉捻機又卡住了，得請人從伊拉姆送零件來。','曉雯說我們的茶樹和台灣的有點像，挺有意思的。'],
+  routine:[[6,7,'h_gurung','wake','起床'],[7,12,'teagarden','foreman','在茶園監督採茶'],[12,13,'teagarden','lunch','在採茶棚吃午餐'],[13,17,'factory','factory','在製茶廠看管揉捻與烘乾'],[17,18,'teahouse','teatime','下工後到茶館喝一杯奶茶'],[18,22,'h_gurung','evening','在家吃晚飯']]},
+ {id:'anil',name:'安尼爾',full:'安尼爾·拉伊',age:27,job:'衛生站健康助理',color:'#1f8a8a',home:'h_rai',sleep:22,social:.35,gossip:.3,
+  persona:'安尼爾·拉伊是衛生站唯一的健康助理，二十七歲，從加德滿都的護理學校畢業後回到家鄉服務；安尼爾溫和、有耐心，但工作常忙到忘記吃飯；安尼爾每天早上在卓瑪茶館吃早餐；安尼爾擔心村裡的自來水管老舊，雨季時常有孩子腹瀉；安尼爾正在準備進修考試；安尼爾和郵局的比卡什是足球隊友；安尼爾不太喜歡熱鬧的場合，但不好意思拒絕別人',
+  short:'溫和有耐心，總是把病人放在第一位',view:'我支持帕桑參選，修好水管能讓村裡的孩子少生病。',onE:'他說要修水管？那太好了，雨季時腹瀉的孩子實在太多了。',
+  talk:['最近咳嗽的人變多了，天氣一冷就這樣。','水管那段又在漏水，雨季時我最怕孩子腹瀉。','我在準備進修考試，晚上都在讀藥理學。'],
+  routine:[[6,7,'h_rai','wake','起床'],[7,8,'teahouse','breakfast','在卓瑪茶館吃早餐'],[8,13,'health','clinic','在衛生站看診'],[13,14,'market','lunch','在市集買 momo 當午餐'],[14,18,'health','clinic','在衛生站看下午的門診'],[18,20,'h_rai','study','在家讀進修考試的書'],[20,21,'teahouse','teatime','到茶館坐一會兒'],[21,22,'h_rai','evening','準備睡覺']]},
+ {id:'kesang',name:'格桑喇嘛',alias:'格桑',full:'格桑喇嘛',age:68,job:'貝瑪寺住持',color:'#a3561b',home:'gompa',sleep:20.5,social:.55,gossip:.3,tib:true,
+  persona:'格桑喇嘛是山脊上貝瑪寺的住持，六十八歲，已經在寺裡修行五十年；格桑喇嘛安靜、慈祥，說話常帶著幽默；格桑喇嘛每天清晨帶小沙彌誦經，上午到經幡山脊更換褪色的經幡；格桑喇嘛認為村裡的事應該大家商量著辦；格桑喇嘛和水磨坊的瑪雅婆婆從小就認識；格桑喇嘛喜歡喝卓瑪煮的酥油茶；格桑喇嘛午後常到市集為村民祈福',
+  short:'慈祥幽默，說的話總讓人想很久',view:'帕桑有心為村子做事，但村裡的事要大家商量著辦。',onE:'有心為村子做事是好事，不過要記得，一個人走不上山頂。',
+  talk:['山上的經幡褪色了，風把祈願都帶走了，這是好事。','人和茶一樣，要慢慢泡才有味道。','今天早上小沙彌念經時睡著了，哈哈。'],
+  routine:[[6,8,'gompa','prayer','清晨帶小沙彌誦經'],[8,10,'gompa','monkteach','教小沙彌讀經'],[10,12,'ridge','flags','到經幡山脊更換經幡'],[12,13,'gompa','lunch','在寺裡用午齋'],[13,15,'market','blessing','到市集為村民祈福'],[15,18,'gompa','meditate','在寺裡打坐'],[18,20.5,'gompa','prayer','晚課誦經']]},
+ {id:'maya',name:'瑪雅',full:'瑪雅·塔帕',age:61,job:'水磨坊主人',color:'#b0306e',home:'mill',sleep:21,social:.95,gossip:.9,
+  persona:'瑪雅·塔帕是河邊水磨坊的主人，六十一歲，每天用水車磨玉米粉和小米粉；瑪雅健談、消息靈通，鎮上沒有什麼事瞞得過她；瑪雅和孫子比卡什住在磨坊旁的小屋；瑪雅中午常到卓瑪茶館和老朋友卓瑪聊天；瑪雅覺得帕桑人不錯，但擔心客棧越開越多會把河水弄髒；瑪雅上午磨完粉後會到市集擺攤；瑪雅年輕時是村裡最會唱山歌的人',
+  short:'健談熱心，鎮上的消息她最先知道',view:'帕桑人不錯，但我擔心客棧越開越多會弄髒河水。',onE:'帕桑人是不錯啦，但客棧再開下去，河水可要被弄髒了。',
+  talk:['今天的玉米粉磨得特別細，水車的水量剛好。','你聽說了嗎？昨天巴士上來了一個外國攝影師。','年輕時我在收割季唱山歌，整座山谷都聽得見。'],
+  routine:[[6,7,'mill','wake','起床'],[7,10,'mill','mill','在水磨坊磨玉米粉'],[10,12,'market','sell','在市集擺攤賣玉米粉'],[12,13.5,'teahouse','lunch','在茶館和卓瑪聊天、吃午餐'],[13.5,17,'mill','mill','下午繼續磨小米粉'],[17,19,'mill','spin','在磨坊前紡羊毛'],[19,21,'mill','evening','和比卡什吃晚飯']]},
+ {id:'bikash',name:'比卡什',full:'比卡什·塔帕',age:23,job:'郵局兼巴士站職員',color:'#4a6b1f',home:'mill',sleep:22,social:.8,gossip:.75,
+  persona:'比卡什·塔帕二十三歲，在郵局兼巴士站工作，負責分信、賣巴士票和代收包裹；比卡什開朗、愛開玩笑，是村裡足球隊的前鋒；比卡什和奶奶瑪雅住在水磨坊旁；比卡什和妮瑪從小一起長大；比卡什下班後會在市集廣場和安尼爾他們踢足球；比卡什夢想存夠錢去博卡拉開一家咖啡店；比卡什每天都知道誰寄了信、誰搭了哪班車',
+  short:'開朗愛開玩笑，是大家的開心果',view:'我支持帕桑，山路修好巴士就不會老是誤點。',onE:'修山路？那巴士就不會老是誤點了，我支持！',
+  talk:['今天有一個從台灣寄來的包裹，是給曉雯的。','傍晚要不要來市集踢球？我們缺一個後衛。','我以後要在博卡拉開一家咖啡店，湖景第一排。'],
+  routine:[[6,7,'mill','wake','起床'],[7,8,'mill','breakfast','和奶奶吃早餐'],[8,12,'bus','post','在郵局分信、賣巴士票'],[12,13,'teahouse','lunch','在茶館吃午餐'],[13,17,'bus','post','下午在郵局值班'],[17,19,'market','football','在市集廣場踢足球'],[19,22,'mill','evening','在家吃晚飯']]},
+ {id:'xiaowen',name:'曉雯',full:'林曉雯',age:31,job:'台灣來的民族植物學研究生',color:'#3d58a8',home:'lodge',sleep:22,social:.45,gossip:.3,
+  persona:'林曉雯三十一歲，是從台灣來的民族植物學研究生，住在雪豹客棧，已經在貝瑪崗做了兩個月的田野調查；曉雯研究喜馬拉雅山區的茶樹品種和採茶知識，每天上午到茶園記錄，下午到製茶廠訪談工人；曉雯做事細心、有點害羞，但對當地文化非常好奇；曉雯的主要報導人是茶園工頭蘇曼；曉雯在教妮瑪一點中文，妮瑪則教她尼泊爾語；曉雯常在傍晚到卓瑪茶館寫明信片寄回台灣；曉雯覺得貝瑪崗的茶和阿里山的高山茶有些相似',
+  short:'細心又害羞，對這裡的一切都很好奇',view:'我是外地人，不便表態，但修水管對大家都有好處。',onE:'我是外地人，不方便表態，不過能修好水管對大家都好。',
+  talk:['我今天在上層梯田記錄到一種葉子特別小的老茶樹。','這裡的茶讓我想起阿里山的高山茶。','妮瑪教我的尼泊爾語，我總是把數字念錯。'],
+  routine:[[6,7,'lodge','wake','起床'],[7,8,'lodge','breakfast','在客棧吃早餐'],[8,12,'teagarden','research','在茶園記錄茶樹品種與採摘方式'],[12,13,'teahouse','lunch','在茶館吃午餐'],[13,16,'factory','interview','到製茶廠訪談工人'],[16,18,'lodge','notes','整理田野筆記'],[18,20,'teahouse','postcard','在茶館寫明信片'],[20,22,'lodge','evening','在客棧休息']]}
+];
+const INIT_EDGES=[['dolma','maya'],['dolma','nima'],['dolma','pasang'],['dolma','kesang'],['dolma','suman'],['dolma','anil'],['pasang','nima'],['pasang','kesang'],['pasang','suman'],['pasang','xiaowen'],['nima','bikash'],['nima','xiaowen'],['lhamo','suman'],['lhamo','kesang'],['suman','xiaowen'],['anil','bikash'],['kesang','maya'],['maya','bikash']];
+
+/* ============ Helpers ============ */
+const $=s=>document.querySelector(s);
+const pad=n=>String(n).padStart(2,'0');
+const dayOf=t=>Math.floor(t/DAY)+1;
+const hm=t=>{const m=((t%DAY)+DAY)%DAY;return pad(Math.floor(m/60))+':'+pad(m%60)};
+const stamp=t=>t<T0?'初始':`第${dayOf(t)}天 ${hm(t)}`;
+const hh=h=>pad(Math.floor(h))+':'+pad(Math.round((h%1)*60));
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function mulberry(a){return function(){a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+let rng=mulberry(20230407);
+const pick=arr=>arr[Math.floor(rng()*arr.length)];
+function bigrams(s){s=s.replace(/[\s，。、「」；：？！（）,.;:?!()…—\-]/g,'');const b=new Set();for(let i=0;i<s.length-1;i++)b.add(s.slice(i,i+2));return b}
+function kwFromText(s){const k=new Set();for(const a of P){if(s.includes(a.name)||(a.alias&&s.includes(a.alias))||s.includes(a.full))k.add(a.id)}
+  if(/燈節|茶會|派對|聚會|party/i.test(s))k.add('party');
+  if(/參選|村代表|選舉|競選|投票/.test(s))k.add('election');
+  for(const id in LOC)if(s.includes(LOC[id].name)||s.includes(LOC[id].name.replace(/^.{2}/,'')))k.add(id);
+  if(/茶園|茶樹|採茶|製茶/.test(s))k.add('tea');
+  return k}
+
+/* ============ State ============ */
+let S, A, AG;
+function init(){
+  rng=mulberry(20230407);
+  A=P.map(p=>({...p,mem:[],impAcc:0,know:{},knowFrom:{},acq:new Set(),party:null,plan:[],planDay:0,cur:null,blkKey:'',steps:[],step:null,loc:p.home,
+    x:LOC[p.home].x,y:LOC[p.home].y,path:[],pathLoc:p.home,v:0,ph:0,face:1,seen:new Set(),chatUntil:0,chatWith:null,lastChat:-999,iv:[],planChanged:new Set(),sawDeco:false}));
+  AG={};A.forEach(a=>AG[a.id]=a);
+  for(const [u,v] of INIT_EDGES){AG[u].acq.add(v);AG[v].acq.add(u)}
+  S={t:T0,running:false,busy:false,done:false,log:[],stats:[],pairLast:{},attend:new Set(),newEdges:[],sel:S?S.sel:'dolma',filter:'all'};
+  AG.dolma.know.party=T0;AG.dolma.knowFrom.party='self';AG.dolma.party='host';
+  AG.pasang.know.election=T0;AG.pasang.knowFrom.election='self';
+  for(const a of A){
+    a.persona.split('；').forEach(seed=>{const k=kwFromText(seed);const imp=(k.has('party')||k.has('election'))?8:5;remember(a,'seed',seed,imp,[...k],T0-1)});
+    makeDayPlan(a,1,T0);updateAction(a,T0);const s=slot(a);a.x=s.x;a.y=s.y;
+  }
+  pushStats(T0);
+  addLog({t:T0,type:'plan',text:'模擬開始。卓瑪心裡盤算著明天的燈節茶會；帕桑想參選村代表，但還沒告訴任何人。'});
+}
+function remember(a,type,text,imp,kw,t,ev){const m={id:a.mem.length+1,t,type,text,imp,kw:new Set(kw||[]),last:t,ev:ev||null,bg:bigrams(text)};a.mem.push(m);if(type!=='reflection'&&type!=='seed')a.impAcc+=imp;return m}
+
+/* ============ Retrieval: recency + importance + relevance ============ */
+function retrieve(a,q,k,t,touch=true){
+  const qk=q.kw instanceof Set?q.kw:new Set(q.kw||[]), qb=bigrams(q.text||'');
+  const rows=a.mem.map(m=>{
+    const rec=Math.pow(.995,Math.max(0,(t-m.last)/60));
+    let ko=0;if(qk.size){let n=0;for(const x of qk)if(m.kw.has(x))n++;ko=n/qk.size}
+    let bo=0;if(qb.size&&m.bg.size){let n=0;for(const x of qb)if(m.bg.has(x))n++;bo=n/Math.sqrt(qb.size*m.bg.size)}
+    return {m,rec,imp:m.imp/10,rel:.6*ko+.4*Math.min(1,bo*1.6)}});
+  const norm=key=>{let lo=Infinity,hi=-Infinity;rows.forEach(r=>{lo=Math.min(lo,r[key]);hi=Math.max(hi,r[key])});rows.forEach(r=>r[key+'N']=hi>lo?(r[key]-lo)/(hi-lo):.5)};
+  norm('rec');norm('imp');norm('rel');
+  rows.forEach(r=>r.score=r.recN+r.impN+r.relN);
+  rows.sort((x,y)=>y.score-x.score);
+  const out=rows.slice(0,k);if(touch)out.forEach(r=>r.m.last=t);return out}
+
+/* ============ Planning ============ */
+function insertBlock(blocks,nb){const out=[];for(const b of blocks){if(b.end<=nb.start||b.start>=nb.end){out.push(b);continue}
+  if(b.start<nb.start)out.push({...b,end:nb.start});if(b.end>nb.end)out.push({...b,start:nb.end})}
+  out.push(nb);return out.sort((x,y)=>x.start-y.start)}
+const blk=r=>({start:r[0],end:r[1],loc:r[2],act:r[3],desc:r[4]});
+function routineFor(a,day){let b=a.routine.map(blk);if(day===2&&a.day2)for(const r of a.day2)b=insertBlock(b,blk(r));return b}
+function makeDayPlan(a,day,t){
+  let b=routineFor(a,day);
+  if(day===2&&a.party==='yes')b=insertBlock(b,{start:17,end:19,loc:'teahouse',act:'party',desc:'參加卓瑪的燈節茶會',added:true});
+  a.plan=b;a.planDay=day;
+  const outline=b.map(x=>`${hh(x.start)} ${x.desc}`).join('；');
+  remember(a,'plan',`第${day}天的計畫：${outline}；${hh(a.sleep)} 睡覺`,3,[a.id,...(b.some(x=>x.act==='party')?['party']:[])],t);
+}
+function conflictAt(a,day,h){const b=routineFor(a,day).find(x=>h>=x.start&&h<x.end);return b&&WORK.has(b.act)?b:null}
+function decompose(a,b,t){
+  const d0=Math.floor(t/DAY)*DAY;
+  const bs=Math.max(t,d0+b.start*60), be=d0+b.end*60;
+  const st=ACT[b.act].st, n=Math.max(1,Math.round((be-bs)/30)), off=Math.floor(rng()*st.length), len=(be-bs)/n;
+  a.steps=[];for(let i=0;i<n;i++){const s=st[(off+i)%st.length];a.steps.push({start:Math.round(bs+i*len),end:Math.round(bs+(i+1)*len),sub:LOC[b.loc].subs[s[0]%LOC[b.loc].subs.length],text:s[1]})}
+}
+function awake(a){return a.cur&&a.cur.act!=='sleep'}
+function updateAction(a,t){
+  const h=(t%DAY)/60;let b,key;
+  if(h<6||h>=a.sleep){b={start:a.sleep,end:30,loc:a.home,act:'sleep',desc:'睡覺'};key='sleep|'+(h<6?dayOf(t)-1:dayOf(t))}
+  else{b=a.plan.find(x=>h>=x.start&&h<x.end)||{start:h,end:h+1,loc:a.home,act:'evening',desc:'在家休息'};key=dayOf(t)+'|'+b.start+'|'+b.act}
+  if(key!==a.blkKey){a.blkKey=key;onBlockStart(a,b,t)}
+  if(a.steps.length)a.step=a.steps.find(s=>t>=s.start&&t<s.end)||a.steps[a.steps.length-1];
+  a.loc=a.cur.loc;
+}
+function onBlockStart(a,b,t){
+  if(b.act==='party'&&a.id!=='dolma'){
+    const r=retrieve(a,{text:'卓瑪的燈節茶會在茶館舉行',kw:['party','dolma','teahouse']},10,t);
+    if(!r.some(x=>x.m.kw.has('party'))){
+      const base=routineFor(a,2).find(x=>(t%DAY)/60>=x.start&&(t%DAY)/60<x.end);
+      addLog({t,type:'plan',who:[a.id],text:`${a.name}忘了燈節茶會，照原本的計畫${base?base.desc:'待在家'}。`});
+      a.plan=a.plan.map(x=>x===b?(base?{...base,start:b.start,end:b.end}:x):x);if(base)b={...base,start:b.start,end:b.end};
+    }else{addLog({t,type:'plan',who:[a.id],text:`${a.name}想起了燈節茶會，出發前往卓瑪茶館。`})}
+  }
+  a.cur=b;
+  if(b.act==='sleep'){a.steps=[{start:t,end:t+600,sub:LOC[a.home].subs[2],text:'睡覺'}];remember(a,'obs',`在${LOC[a.home].name}上床睡覺`,1,[a.home],t);return}
+  decompose(a,b,t);
+  const k=[b.loc,b.act];if(b.act==='party')k.push('party','dolma');if(b.loc==='teagarden'||b.loc==='factory')k.push('tea');
+  remember(a,'obs',`在${LOC[b.loc].name}：${b.desc}`,ACT[b.act].imp,k,t);
+}
+
+/* ============ Perception ============ */
+function slotIndex(a){const here=A.filter(o=>o.loc===a.loc);return here.indexOf(a)}
+const SLOTS=[[-30,34],[0,40],[30,34],[-56,22],[56,22],[-16,64],[16,64],[-46,56],[46,56],[0,86]];
+function slot(a){const L=LOC[a.loc],s=SLOTS[Math.max(0,slotIndex(a))%SLOTS.length];return{x:L.x+s[0],y:L.y+s[1]}}
+function observe(t){
+  const day=dayOf(t),h=(t%DAY)/60;
+  for(const a of A){
+    if(!awake(a)){a.seen=new Set();continue}
+    const here=A.filter(o=>o!==a&&o.loc===a.loc&&awake(o));
+    const fresh=here.filter(o=>!a.seen.has(o.id)).slice(0,2);
+    for(const o of fresh)remember(a,'obs',`看到${o.name}在${LOC[a.loc].name}${o.step?o.step.text:o.cur.desc}`,2,[o.id,a.loc],t);
+    a.seen=new Set(here.map(o=>o.id));
+    if(day===2&&h>=15.5&&h<19&&a.loc==='teahouse'&&a.id!=='dolma'&&!a.sawDeco){a.sawDeco=true;remember(a,'obs','茶館露台掛滿了萬壽菊花環，還擺了好多酥油燈',4,['teahouse','dolma','party'],t)}
+  }
+}
+
+/* ============ Conversation ============ */
+function greet(a,b,t){const h=(t%DAY)/60;const g=a.tib&&b.tib?'扎西德勒':(a.id==='xiaowen'&&b.id==='nima'?'你好':'Namaste');
+  const tod=h<11?'早安':h<17?'午安':'晚上好';return a.acq.has(b.id)?`${g}，${b.name}！${tod}，最近還好嗎？`:`${g}，我好像還沒正式跟你打過招呼。我是${a.name}，${a.job}。`}
+function shareFor(a,b,t){
+  for(const f of ['party','election']){
+    if(!a.know[f]||b.know[f])continue;
+    if(f==='party'&&(dayOf(t)>2||(dayOf(t)===2&&t%DAY>=19*60)))continue;
+    const p=(f==='party'&&a.id==='dolma')||(f==='election'&&a.id==='pasang')?.95:a.gossip*.8;
+    if(rng()<p)return f}
+  return null}
+function hasNews(a,b){return ['party','election'].some(f=>a.know[f]&&!b.know[f])}
+function decideParty(b,t){
+  if(b.id==='dolma')return;
+  const c=conflictAt(b,2,17.5);
+  let p=.25+.5*b.social+(b.acq.has('dolma')?.15:0)-(c?.3:0);
+  b.party=rng()<p?'yes':'no';b.partyConflict=c;
+  if(b.party==='yes'){remember(b,'plan','我答應要去卓瑪的燈節茶會（第二天傍晚五點，茶館）',6,['party','dolma','teahouse'],t);
+    if(dayOf(t)===2&&b.planDay===2){b.plan=insertBlock(b.plan,{start:17,end:19,loc:'teahouse',act:'party',desc:'參加卓瑪的燈節茶會',added:true});addLog({t,type:'plan',who:[b.id],text:`${b.name}把今天傍晚的計畫改成參加燈節茶會。`})}
+    else addLog({t,type:'plan',who:[b.id],text:`${b.name}決定明天傍晚去燈節茶會，已寫進明天的計畫。`})}
+  else remember(b,'plan',`燈節茶會那時候我${c?'得'+c.desc:'不太想去人多的地方'}，大概去不了`,4,['party','dolma'],t);
+}
+function startChat(a,b,t){
+  if(hasNews(b,a)&&!hasNews(a,b))[a,b]=[b,a];
+  const share=shareFor(a,b,t);
+  const newAcq=!a.acq.has(b.id);
+  const L=[{s:a.id,x:greet(a,b,t)}];
+  L.push({s:b.id,x:newAcq?`你好，我是${b.name}，${b.job}。我正在${b.step?b.step.text:b.cur.desc}。`:`還不錯！我正在${b.step?b.step.text:b.cur.desc}。`});
+  let summary;
+  if(share==='party'){
+    b.know.party=t;b.knowFrom.party=a.id;
+    L.push({s:a.id,x:a.id==='dolma'?'明天傍晚五點，我在茶館辦燈節茶會，會點滿酥油燈、煮一大鍋奶茶，你一定要來！':'你聽說了嗎？卓瑪明天傍晚五點要在茶館辦燈節茶會。'});
+    remember(b,'chat',a.id==='dolma'?'卓瑪邀請我明天（第二天）傍晚五點到茶館參加燈節茶會':`${a.name}告訴我，卓瑪第二天傍晚五點要在茶館辦燈節茶會`,7,['party','dolma','teahouse',a.id],t);
+    decideParty(b,t);
+    L.push({s:b.id,x:b.party==='yes'?pick(['太好了，我一定去！','燈節茶會？聽起來很熱鬧，我會去。','好，我到時候過去坐坐。']):(b.partyConflict?`明天傍晚我得${b.partyConflict.desc}，不一定走得開，我盡量。`:'我不太習慣熱鬧的場合……不過謝謝你告訴我。')});
+    summary=`聊到燈節茶會（${b.name}${b.party==='yes'?'答應出席':'可能不去'}）`;
+    addLog({t,type:'share',who:[a.id,b.id],text:`${b.name}從${a.name}那裡得知燈節茶會。`});
+  }else if(share==='election'){
+    b.know.election=t;b.knowFrom.election=a.id;
+    L.push({s:a.id,x:a.id==='pasang'?'我打算參選下一屆的村代表，想爭取經費把山路和水管修好。你覺得怎麼樣？':'你聽說了嗎？帕桑要參選村代表了。'});
+    L.push({s:b.id,x:b.onE||'嗯，我再想想。'});
+    remember(b,'chat',a.id==='pasang'?'帕桑親口告訴我，他要參選下一屆村代表，想修好山路和水管':`${a.name}說帕桑要參選村代表`,7,['election','pasang',a.id],t);
+    summary='聊到帕桑參選村代表';
+    addLog({t,type:'share',who:[a.id,b.id],text:`${b.name}從${a.name}那裡得知帕桑要參選。`});
+  }else{
+    L.push({s:a.id,x:pick(a.talk.filter(x=>!x.includes(b.name)))});
+    L.push({s:b.id,x:pick(['真的嗎？','哈哈，是這樣啊。','嗯，我也這麼覺得。','這倒是真的。'])+(rng()<.6?pick(b.talk.filter(x=>!x.includes(a.name))):'')});
+    summary='閒聊近況';
+  }
+  L.push({s:a.id,x:pick(['那我先去忙了，回頭見！','好，改天再聊。','我得走了，保重！'])});
+  a.acq.add(b.id);b.acq.add(a.id);if(newAcq)S.newEdges.push([a.id,b.id]);
+  const loc=LOC[a.loc].name;
+  remember(a,'chat',`在${loc}和${b.name}聊天，${summary}`,4,[b.id,a.loc,...(share?[share]:[])],t);
+  remember(b,'chat',`在${loc}和${a.name}聊天，${summary}`,4,[a.id,a.loc,...(share?[share]:[])],t);
+  if(share)remember(a,'chat',`我告訴了${b.name}${share==='party'?'燈節茶會':'參選'}的事`,3,[b.id,share],t);
+  a.chatUntil=b.chatUntil=t+20;a.chatWith=b.id;b.chatWith=a.id;a.lastChat=b.lastChat=t;S.pairLast[[a.id,b.id].sort().join()]=t;
+  const entry=addLog({t,type:'chat',who:[a.id,b.id],loc:a.loc,lines:L,text:`${a.name}和${b.name}在${loc}聊天：${summary}`});
+  if(S.useClaude&&sample)claudeDialogue(entry,a,b,share,t);
+}
+function converse(t){
+  if(S.busy)return;
+  const free=A.filter(a=>awake(a)&&t>=a.chatUntil&&t-a.lastChat>=40&&!NOCHAT.has(a.cur.act));
+  const by={};free.forEach(a=>(by[a.loc]=by[a.loc]||[]).push(a));
+  for(const loc in by){const g=by[loc].sort(()=>rng()-.5);
+    for(let i=0;i<g.length;i++)for(let j=i+1;j<g.length;j++){const a=g[i],b=g[j];
+      if(t<a.chatUntil||t<b.chatUntil)continue;
+      const lp=S.pairLast[[a.id,b.id].sort().join()];if(lp!==undefined&&t-lp<180)continue;
+      let p=.1*(a.social+b.social)/2*(a.acq.has(b.id)?1:.7);
+      if(hasNews(a,b)||hasNews(b,a))p*=2.0;
+      if(a.cur.act==='party')p*=2.5;
+      if(rng()<p){startChat(a,b,t);if(S.busy)return}
+    }}
+}
+
+/* ============ Reflection ============ */
+function insightFor(a,f){
+  if(f==='party'){
+    if(a.id==='dolma'){const k=A.filter(o=>o.know.party&&o.id!=='dolma'),y=k.filter(o=>o.party==='yes');return `已經有${k.length}位鄰居知道我的燈節茶會${y.length?'，'+y.map(o=>o.name).join('、')+'答應要來':''}。茶會要熱鬧，得再多邀幾個人。`}
+    if(a.party==='yes')return '我打算參加卓瑪的燈節茶會，那會是和鄰居們好好聚一聚的機會。';
+    return `卓瑪的燈節茶會聽起來很熱鬧，但我那時候${a.partyConflict?'得'+a.partyConflict.desc:'不太想去人多的地方'}。`}
+  if(f==='election'){
+    if(a.id==='pasang'){const k=A.filter(o=>o.know.election&&o.id!=='pasang');const sup=k.filter(o=>['dolma','nima','anil','bikash'].includes(o.id)),opp=k.filter(o=>o.id==='suman'||o.id==='maya');
+      return `已經有${k.length}位鄰居知道我要參選${sup.length?'，'+sup.map(o=>o.name).join('、')+'看起來願意支持':''}${opp.length?'；'+opp.map(o=>o.name).join('、')+'還有疑慮，要再多溝通':''}。`}
+    return a.view}
+  if(AG[f]){const o=AG[f];const n=a.mem.filter(m=>m.type==='chat'&&m.kw.has(f)).length;return `${o.name}${o.short}。${INIT_EDGES.some(e=>e.includes(a.id)&&e.includes(f))?(n>=2?'我們是老朋友，這兩天又聊了好幾次。':'我們是認識多年的老朋友。'):(n>=2?'我們這兩天常聊天，越來越熟了。':'我想多認識'+o.name+'一點。')}`}
+  const locs={};a.mem.slice(-40).forEach(m=>{for(const k of m.kw)if(LOC[k])locs[k]=(locs[k]||0)+m.imp});
+  const main=Object.entries(locs).sort((x,y)=>y[1]-x[1])[0];
+  return `我大部分的時間都待在${main?LOC[main[0]].name:'家裡'}，${a.job}的工作是我生活的重心。`}
+function questionFor(a,f){if(f==='party')return '關於燈節茶會，我知道些什麼？';if(f==='election')return '我怎麼看帕桑參選村代表？';if(AG[f])return `${AG[f].name}是個什麼樣的人？`;return '我最近的生活重心是什麼？'}
+function reflectLocal(a,t){
+  const recent=a.mem.filter(m=>m.type!=='reflection'&&m.type!=='seed').slice(-40);
+  const sc={};for(const m of recent)for(const k of m.kw)if((AG[k]&&k!==a.id)||k==='party'||k==='election')sc[k]=(sc[k]||0)+m.imp;
+  const done=new Set(a.mem.filter(m=>m.type==='reflection').map(m=>m.focus+'|'+m.insightKey));
+  let focal=Object.entries(sc).sort((x,y)=>y[1]-x[1]).map(e=>e[0]);
+  if(!focal.length)focal=['work'];
+  const made=[];
+  for(const f of focal){if(made.length>=2)break;
+    const ins=insightFor(a,f);if(done.has(f+'|'+ins))continue;
+    const q=questionFor(a,f);const r=retrieve(a,{text:q,kw:[f]},4,t);
+    const imp=Math.min(9,Math.round(r.reduce((s,x)=>s+x.m.imp,0)/r.length)+2);
+    const m=remember(a,'reflection',ins,imp,[f,...(AG[f]?[]:[])],t,r.map(x=>x.m.id));m.q=q;m.focus=f;m.insightKey=ins;made.push(m)}
+  a.impAcc=0;
+  if(made.length)addLog({t,type:'refl',who:[a.id],text:`${a.name}反思：${made.map(m=>m.text).join(' ')}`});
+  return made.length}
+
+/* ============ Stats ============ */
+function density(){let e=0;for(const a of A)e+=a.acq.size;return e/2/(A.length*(A.length-1)/2)}
+function pushStats(t){S.stats.push({t,party:A.filter(a=>a.know.party).length,election:A.filter(a=>a.know.election).length,d:density()})}
+
+/* ============ Tick ============ */
+function tick(){
+  if(S.done||S.busy)return;
+  if(S.t>=TEND){finish();return}
+  S.t+=10;const t=S.t,m=t%DAY;
+  for(const a of A){if(m===360)makeDayPlan(a,dayOf(t),t);updateAction(a,t)}
+  observe(t);converse(t);
+  for(const a of A)if(a.impAcc>=REFL_TH&&awake(a))reflectLocal(a,t);
+  if(m%60===0)pushStats(t);
+  if(dayOf(t)===2&&m>=17*60&&m<19*60)for(const a of A)if(a.loc==='teahouse'&&a.cur.act==='party')S.attend.add(a.id);
+  if(S.t>=TEND)finish();
+  dirty=true;
+}
+function finish(){if(S.done)return;S.done=true;S.running=false;pushStats(S.t);
+  const att=[...S.attend].filter(id=>id!=='dolma').map(id=>AG[id].name);
+  addLog({t:S.t,type:'plan',text:`模擬結束。參選消息傳給了 ${A.filter(a=>a.know.election).length} 人；燈節茶會有 ${A.filter(a=>a.know.party).length} 人知道，${att.length} 人出席${att.length?'（'+att.join('、')+'）':''}。`});
+  $('#btnPlay').textContent='已結束';$('#btnPlay').disabled=true;$('#btnStep').disabled=true;
+  setStatus('兩天的模擬跑完了。可以繼續訪談居民，或到「資訊擴散」看結果。');dirty=true}
+
+/* ============ Log ============ */
+function addLog(e){e.n=S.log.length;S.log.push(e);logDirty=true;return e}
+
+/* ============ Claude (sample capability) ============ */
+let sample=null;
+(async()=>{try{if(window.claude&&claude.use){sample=await claude.use('sample')}}catch(e){sample=null}
+  if(sample){$('#claudeTog').classList.remove('hidden')}
+  else{$('#ivNote').textContent='這個檢視無法連到 Claude，訪談會改用本機模式：直接列出檢索到的記憶。';$('#reflNote').textContent=''}
+})();
+function errCopy(e){const c=e&&e.code;return c==='not_granted'||c==='sampling_disabled'?'你沒有允許這個頁面使用 Claude，已改回本機模式。':c==='rate_limited'?'使用太頻繁了，稍後再試。':c==='session_expired'?'請重新登入 Claude 後再試。':'Claude 暫時無法回應，稍後再試。'}
+function disableClaude(e){if(e&&['not_granted','sampling_disabled','not_declared','capability_disabled','capability_removed'].includes(e.code)){sample=null;$('#claudeTog').classList.add('hidden');S.useClaude=false;$('#useClaude').checked=false}}
+function memLines(list){return list.map(r=>`#${r.m.id} [${stamp(r.m.t)}] ${r.m.text}`).join('\n')}
+async function claudeDialogue(entry,a,b,share,t){
+  S.busy=true;entry.pending=true;setStatus(`Claude 正在寫${a.name}和${b.name}的對話…（模擬暫停等待）`);logDirty=true;
+  const ra=retrieve(a,{text:b.name+' '+(share==='party'?'燈節茶會':share==='election'?'參選':''),kw:[b.id,...(share?[share]:[])]},5,t,false);
+  const rb=retrieve(b,{text:a.name,kw:[a.id]},5,t,false);
+  const must=share==='party'?(a.id==='dolma'?`${a.name}邀請${b.name}參加第二天傍晚五點在茶館的燈節茶會；${b.name}${b.party==='yes'?'答應出席':'表示可能去不了'+(b.partyConflict?'（要'+b.partyConflict.desc+'）':'')}`:`${a.name}轉告${b.name}：卓瑪第二天傍晚五點在茶館辦燈節茶會；${b.name}${b.party==='yes'?'說會去':'表示可能去不了'}`)
+    :share==='election'?`${a.name}${a.id==='pasang'?'親口說自己要參選村代表，想修好山路和水管':'轉告帕桑要參選村代表'}；${b.name}的反應：${b.onE}`:'沒有特別要傳達的消息，閒聊彼此的近況或工作。';
+  const prompt=`你在為一個仿照〈Generative Agents〉論文的小鎮模擬寫對話。小鎮是喜馬拉雅山腳的「貝瑪崗」。
+現在是${stamp(t)}，地點：${LOC[a.loc].name}。
+${a.name}（${a.age}歲，${a.job}）人設：${a.persona}
+${a.name}正在：${a.cur.desc}。${a.name}想起的相關記憶：
+${memLines(ra)}
+${b.name}（${b.age}歲，${b.job}）人設：${b.persona}
+${b.name}正在：${b.cur.desc}。${b.name}想起的相關記憶：
+${memLines(rb)}
+兩人${a.acq.has(b.id)&&!S.newEdges.some(e=>e.includes(a.id)&&e.includes(b.id))?'早就認識':'是第一次正式交談'}。這段對話由${a.name}開口，必須包含：${must}
+用台灣繁體中文寫 4 到 6 句自然、口語、符合各自個性的對話，不要編造記憶裡沒有的重大事件。
+只回覆 JSON 陣列，例如：[{"speaker":"${a.name}","text":"…"},{"speaker":"${b.name}","text":"…"}]`;
+  try{const out=await sample.json(prompt,{modelTier:'quick',cache:false});
+    if(Array.isArray(out)&&out.length){entry.lines=out.filter(x=>x&&x.text).map(x=>({s:String(x.speaker).includes(b.name)?b.id:a.id,x:String(x.text)}));entry.byClaude=true}
+  }catch(e){entry.note='（Claude 生成失敗，保留範本對話）';disableClaude(e);setStatus(errCopy(e))}
+  entry.pending=false;S.busy=false;logDirty=true;if(!S.done)setStatus(S.running?'模擬進行中。':'已暫停。');
+}
+
+/* ============ Rendering: map ============ */
+const cv=$('#map'),g=cv.getContext('2d');let bgCanvas=null;
+function setupCanvas(){const dpr=Math.min(2,window.devicePixelRatio||1);cv.width=1000*dpr;cv.height=680*dpr;g.setTransform(dpr,0,0,dpr,0,0);bgCanvas=document.createElement('canvas');bgCanvas.width=1000*dpr;bgCanvas.height=680*dpr;const b=bgCanvas.getContext('2d');b.setTransform(dpr,0,0,dpr,0,0);drawBackground(b)}
+function drawBackground(b){
+  const r=mulberry(7);
+  let gr=b.createLinearGradient(0,0,0,680);gr.addColorStop(0,'#c3d6e6');gr.addColorStop(.17,'#e6eef2');gr.addColorStop(.19,'#a9c38f');gr.addColorStop(.6,'#8fb277');gr.addColorStop(1,'#739a5f');b.fillStyle=gr;b.fillRect(0,0,1000,680);
+  const peaks=[[0,92],[55,62],[110,88],[185,28],[250,82],[320,52],[395,95],[470,18],[545,78],[625,40],[700,90],[790,22],[870,72],[940,44],[1000,80]];
+  b.beginPath();b.moveTo(0,140);peaks.forEach(p=>b.lineTo(p[0],p[1]));b.lineTo(1000,140);b.closePath();b.fillStyle='#98a9bf';b.fill();
+  b.fillStyle='#f7f9fb';for(let i=1;i<peaks.length-1;i++){const[p,q,n]=[peaks[i-1],peaks[i],peaks[i+1]];if(q[1]<70&&q[1]<p[1]&&q[1]<n[1]){const f=.3;b.beginPath();b.moveTo(q[0],q[1]);b.lineTo(q[0]+(n[0]-q[0])*f,q[1]+(n[1]-q[1])*f);b.lineTo(q[0]+(n[0]-q[0])*f*.4,q[1]+(n[1]-q[1])*f*.55+4);b.lineTo(q[0]+(p[0]-q[0])*f*.5,q[1]+(p[1]-q[1])*f*.6+6);b.lineTo(q[0]+(p[0]-q[0])*f,q[1]+(p[1]-q[1])*f);b.closePath();b.fill()}}
+  b.beginPath();b.moveTo(0,150);for(let x=0;x<=1000;x+=40)b.lineTo(x,118+Math.sin(x/90)*12+r()*8);b.lineTo(1000,160);b.lineTo(0,160);b.closePath();b.fillStyle='#7c9a7a';b.fill();
+  for(let i=0;i<900;i++){const x=r()*1000,y=150+r()*530;b.fillStyle=r()<.5?'rgba(40,70,35,.10)':'rgba(255,255,230,.10)';b.fillRect(x,y,2+r()*3,2+r()*3)}
+  for(let i=0;i<14;i++){const y0=165+i*13;b.beginPath();b.moveTo(700,y0+18);b.quadraticCurveTo(840,y0-6,990,y0+14);b.strokeStyle=i%2?'#3f6f3a':'#557f45';b.lineWidth=6;b.setLineDash([4,3]);b.lineCap='round';b.stroke()}
+  b.setLineDash([]);
+  b.lineCap='round';b.beginPath();b.moveTo(250,125);b.bezierCurveTo(220,250,70,330,105,470);b.bezierCurveTo(130,560,60,620,90,690);b.strokeStyle='#5f93b8';b.lineWidth=18;b.stroke();b.strokeStyle='#9cc7e1';b.lineWidth=6;b.stroke();
+  for(const[u,v]of ROADS){const p=LOC[u],q=LOC[v];b.beginPath();b.moveTo(p.x,p.y+14);b.lineTo(q.x,q.y+14);b.strokeStyle='#bba577';b.lineWidth=8;b.stroke();b.strokeStyle='#dccda4';b.lineWidth=3.5;b.stroke()}
+  for(let i=0;i<40;i++){const x=r()*1000,y=170+r()*500;let ok=true;for(const id in LOC){if(Math.hypot(LOC[id].x-x,LOC[id].y-y)<70)ok=false}if(x>680&&y<320)ok=false;if(!ok)continue;b.fillStyle='#2f5a36';b.beginPath();b.moveTo(x,y-14);b.lineTo(x+7,y+4);b.lineTo(x-7,y+4);b.closePath();b.fill();b.fillStyle='#5a3d22';b.fillRect(x-1,y+4,2,4)}
+  for(const id in LOC)drawBuilding(b,id,LOC[id]);
+  b.font='600 12.5px "Noto Sans TC",sans-serif';b.textAlign='center';
+  for(const id in LOC){const L=LOC[id];const ty=L.y-(L.kind==='gompa'?46:L.kind==='ridge'?30:36);b.lineWidth=4;b.strokeStyle='rgba(255,255,255,.88)';b.strokeText(L.name,L.x,ty);b.fillStyle='#1c2330';b.fillText(L.name,L.x,ty)}
+}
+function house(b,x,y,w,h,wall,roof){b.fillStyle='rgba(0,0,0,.14)';b.fillRect(x-w/2+3,y-h/2+4,w,h);b.fillStyle=wall;b.fillRect(x-w/2,y-h/2,w,h);b.fillStyle=roof;b.beginPath();b.moveTo(x-w/2-5,y-h/2+2);b.lineTo(x-w/2+6,y-h/2-12);b.lineTo(x+w/2-6,y-h/2-12);b.lineTo(x+w/2+5,y-h/2+2);b.closePath();b.fill();b.fillStyle='#4a3a2a';b.fillRect(x-4,y+h/2-11,8,11)}
+function drawBuilding(b,id,L){const x=L.x,y=L.y-6;
+  switch(L.kind){
+    case'gompa':b.fillStyle='rgba(0,0,0,.15)';b.fillRect(x-38,y-10,80,34);b.fillStyle='#f3efe6';b.fillRect(x-40,y-12,80,32);b.fillStyle='#8e2434';b.fillRect(x-40,y-12,80,8);b.fillStyle='#d6a531';b.beginPath();b.moveTo(x-46,y-12);b.lineTo(x-28,y-26);b.lineTo(x+28,y-26);b.lineTo(x+46,y-12);b.closePath();b.fill();b.fillRect(x-2,y-36,4,10);b.beginPath();b.arc(x,y-38,4,0,7);b.fill();b.fillStyle='#4a2a1a';b.fillRect(x-5,y+6,10,14);break;
+    case'ridge':{const cols=['#2a64b0','#f5f5f5','#c7312e','#2f8a45','#e2b52a'];for(let k=0;k<3;k++){const x0=x-70+k*48,y0=y-2+(k%2)*6;b.strokeStyle='#5a4a3a';b.lineWidth=2;b.beginPath();b.moveTo(x0,y0+18);b.lineTo(x0,y0-12);b.stroke();b.beginPath();b.moveTo(x0,y0-12);b.quadraticCurveTo(x0+24,y0,x0+48,y0-12);b.strokeStyle='rgba(60,50,40,.5)';b.lineWidth=1;b.stroke();for(let j=0;j<8;j++){const tx=x0+3+j*5.6,ty=y0-12+Math.sin((j+.5)/8*Math.PI)*6;b.fillStyle=cols[(j+k)%5];b.fillRect(tx,ty,4.5,7)}}b.strokeStyle='#5a4a3a';b.lineWidth=2;b.beginPath();b.moveTo(x+74,y+4);b.lineTo(x+74,y-26);b.stroke();break}
+    case'tea':house(b,x,y+30,40,20,'#d9c9a3','#6b5a3a');break;
+    case'factory':house(b,x,y,78,34,'#e4ddd0','#6d6c62');b.fillStyle='#8a8578';b.fillRect(x+24,y-38,8,18);break;
+    case'school':house(b,x,y,64,32,'#f1e8d2','#c28c2a');b.strokeStyle='#5a4a3a';b.lineWidth=1.5;b.beginPath();b.moveTo(x+40,y+16);b.lineTo(x+40,y-26);b.stroke();b.fillStyle='#c7312e';b.fillRect(x+40,y-26,12,8);break;
+    case'teahouse':house(b,x,y,60,34,'#f2ece0','#2c6687');b.fillStyle='#e2b52a';for(let j=0;j<6;j++){b.beginPath();b.arc(x-24+j*9.6,y-16,2.4,0,7);b.fill()}break;
+    case'lodge':house(b,x,y,66,36,'#ece3d3','#8a3b2f');b.fillStyle='#fff';b.fillRect(x-24,y-8,8,7);b.fillRect(x+16,y-8,8,7);break;
+    case'market':{const cs=['#c7312e','#2a64b0','#e2b52a','#2f8a45'];for(let j=0;j<4;j++){const sx=x-48+j*32,sy=y-8+(j%2)*6;b.fillStyle='#7a5a3a';b.fillRect(sx-12,sy,2,14);b.fillRect(sx+10,sy,2,14);b.fillStyle=cs[j];b.fillRect(sx-14,sy-6,28,8);b.fillStyle='#caa46a';b.fillRect(sx-12,sy+6,24,6)}break}
+    case'health':house(b,x,y,56,32,'#f7f7f5','#8f9aa6');b.fillStyle='#c7312e';b.fillRect(x-3,y-10,6,16);b.fillRect(x-8,y-5,16,6);break;
+    case'bus':house(b,x,y,62,30,'#efe4cf','#4f6480');b.fillStyle='#c7312e';b.fillRect(x+36,y-2,26,14);b.fillStyle='#fff';b.fillRect(x+40,y+1,6,5);b.fillRect(x+50,y+1,6,5);break;
+    case'mill':house(b,x,y,48,30,'#e9dfcb','#5b5f66');b.strokeStyle='#6a4a2a';b.lineWidth=3;b.beginPath();b.arc(x-38,y+4,13,0,7);b.stroke();for(let j=0;j<6;j++){const an=j*Math.PI/3;b.beginPath();b.moveTo(x-38,y+4);b.lineTo(x-38+Math.cos(an)*13,y+4+Math.sin(an)*13);b.lineWidth=1.5;b.stroke()}break;
+    default:house(b,x,y,44,28,'#e9e0cf','#56606e');
+  }}
+function nightAlpha(t){const h=(t%DAY)/60;if(h>=6.5&&h<17.5)return 0;if(h>=17.5&&h<20)return (h-17.5)/2.5*.5;if(h>=20||h<5)return .5;if(h>=5&&h<6.5)return .5*(1-(h-5)/1.5);return 0}
+
+/* ============ Walking along the roads at a human pace ============ */
+const GRAPH={};for(const[u,v]of ROADS){(GRAPH[u]=GRAPH[u]||[]).push(v);(GRAPH[v]=GRAPH[v]||[]).push(u)}
+const RP=id=>({x:LOC[id].x,y:LOC[id].y+14});
+const PACE={maya:.8,kesang:.85,pasang:.92,nima:1.12,bikash:1.1};
+let curTps=1;
+function route(from,to){const dist={},prev={},Q=new Set(Object.keys(LOC));for(const k of Q)dist[k]=Infinity;dist[from]=0;
+  while(Q.size){let u=null;for(const k of Q)if(u===null||dist[k]<dist[u])u=k;Q.delete(u);if(u===to)break;
+    for(const v of GRAPH[u]||[]){const d=dist[u]+Math.hypot(LOC[u].x-LOC[v].x,LOC[u].y-LOC[v].y);if(d<dist[v]){dist[v]=d;prev[v]=u}}}
+  const out=[];let c=to;while(c){out.unshift(c);c=prev[c]}return out[0]===from?out:[to]}
+function nearestNode(x,y){let b=null,bd=Infinity;for(const id in LOC){const p=RP(id),d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;b=id}}return b}
+function walk(a,dt){
+  if(a.pathLoc!==a.loc){
+    const from=a.pathLoc&&Math.hypot(a.x-RP(a.pathLoc).x,a.y-RP(a.pathLoc).y)<90&&!a.path.length?a.pathLoc:nearestNode(a.x,a.y);
+    a.path=route(from,a.loc).map(RP);a.pathLoc=a.loc}
+  const goal=a.path.length?a.path[0]:slot(a);
+  const dx=goal.x-a.x,dy=goal.y-a.y,d=Math.hypot(dx,dy);
+  if(d<1.2){if(a.path.length){a.path.shift();return}a.v=0;a.ph=0;return}
+  const vmax=58*Math.sqrt(Math.max(1,curTps))*(PACE[a.id]||1);
+  const want=a.path.length>0?vmax:Math.min(vmax,4+d*2.2);
+  a.v=(a.v||0)+(want-(a.v||0))*Math.min(1,dt*4);
+  const mv=Math.min(d,a.v*dt);
+  a.x+=dx/d*mv;a.y+=dy/d*mv;
+  a.ph=(a.ph||0)+mv*(0.3/(PACE[a.id]||1));
+  if(Math.abs(dx)>.4)a.face=dx<0?-1:1;
+}
+/* ============ Characters: hand-drawn figures ============ */
+const LOOK={
+  dolma:{skin:'#c68a5e',hair:'#1b1512',hs:'braid',top:'#6a2b2e',bot:'#4a1f22',dress:true,apron:true,earring:true},
+  pasang:{skin:'#b37650',hair:'#2a2420',hs:'short',hat:'topi',top:'#f0ece2',vest:'#34485c',bot:'#3a3a40',mous:true},
+  nima:{skin:'#c89066',hair:'#1b1512',hs:'pony',top:'#d0452f',bot:'#5b6470',pack:true,band:'#2c9bb0'},
+  lhamo:{skin:'#c48b62',hair:'#15110e',hs:'long',top:'#6d4a9e',bot:'#6d4a9e',dress:true,scarf:'#e27aa0',book:'#2c6687'},
+  suman:{skin:'#a86f48',hair:'#1f1a16',hs:'short',top:'#3f7a4a',bot:'#6a5238',doko:true},
+  anil:{skin:'#b07650',hair:'#16120f',hs:'side',top:'#f6f7f8',bot:'#2d4d7a',coat:true,steth:true},
+  kesang:{skin:'#b98458',hair:null,hs:'bald',top:'#e2a02a',bot:'#8e2434',dress:true,robe:true,glasses:true,beads:true},
+  maya:{skin:'#ae7652',hair:'#b9b4ad',hs:'bun',top:'#8a3a4a',bot:'#2f5a45',dress:true,shawl:'#9c4a3a',hunch:true},
+  bikash:{skin:'#b8805a',hair:'#1b1512',hs:'short',hat:'cap',top:'#e2b52a',bot:'#1f2b44',shorts:true,num:'9'},
+  xiaowen:{skin:'#efcfae',hair:'#3a2a20',hs:'bob',hat:'sun',top:'#b8a57a',bot:'#4a6a9a',glasses:true,note:true}
+};
+function drawPerson(c,a,x,y,s,ph,face,opt={}){
+  const L=LOOK[a.id];c.save();c.translate(x,y);c.scale(s*face,s);
+  const sw=Math.sin(ph)*3.8,bob=Math.abs(Math.sin(ph))*-0.8,H=L.hunch?1.2:0;
+  if(!opt.noShadow){c.fillStyle='rgba(0,0,0,.28)';c.beginPath();c.ellipse(0,0,8,2.4,0,0,7);c.fill()}
+  c.translate(0,bob);c.lineCap='round';c.lineJoin='round';
+  // back items
+  if(L.pack){c.fillStyle='#2a5f9e';roundRect(c,-10,-26,6,14,2);c.fill();c.fillStyle='#1d4577';c.fillRect(-10,-19,6,2)}
+  if(L.doko){c.fillStyle='#b58b4c';c.beginPath();c.moveTo(-14,-34);c.lineTo(-4,-34);c.lineTo(-6,-14);c.lineTo(-10,-14);c.closePath();c.fill();
+    c.strokeStyle='#7e5e2c';c.lineWidth=.7;for(let i=0;i<4;i++){const yy=-31+i*4.5;c.beginPath();c.moveTo(-13.4+i*.6,yy);c.lineTo(-4.4-i*.4,yy);c.stroke()}
+    c.fillStyle='#4f8a3c';c.beginPath();c.ellipse(-9,-34,5,1.8,0,0,7);c.fill()}
+  if(L.hs==='braid'){c.strokeStyle=L.hair;c.lineWidth=2.2;c.beginPath();c.moveTo(-4,-30);c.quadraticCurveTo(-7,-24,-5,-17);c.stroke()}
+  if(L.hs==='long'){c.fillStyle=L.hair;roundRect(c,-6.5,-34,6,13,3);c.fill()}
+  // legs
+  const legC=L.shorts?L.skin:L.bot;
+  if(!L.dress){c.strokeStyle=legC;c.lineWidth=3.2;c.beginPath();c.moveTo(-2,-12);c.lineTo(-2+sw,-1.5);c.moveTo(2,-12);c.lineTo(2-sw,-1.5);c.stroke();
+    if(L.shorts){c.fillStyle=L.bot;c.fillRect(-4.5,-13,9,5)}}
+  c.fillStyle='#2a211b';c.beginPath();c.ellipse((L.dress?-2:-2+sw)+1,-1,2.3,1.3,0,0,7);c.ellipse((L.dress?2:2-sw)+1,-1,2.3,1.3,0,0,7);c.fill();
+  if(L.dress){c.fillStyle=L.bot;c.beginPath();c.moveTo(-5,-22);c.lineTo(-7,-2);c.lineTo(7,-2);c.lineTo(5,-22);c.closePath();c.fill();
+    if(L.apron){const cs=['#c7312e','#2a64b0','#e2b52a','#2f8a45','#f2f2f2','#c7312e','#2a64b0'];for(let i=0;i<7;i++){c.fillStyle=cs[i];c.fillRect(1.5+i*.8,-15,.9,13)}}}
+  // torso
+  c.save();c.rotate(H*.06);
+  c.fillStyle=L.top;roundRect(c,-5.5,-25,11,L.coat?15:13.5,3);c.fill();
+  if(L.coat){c.strokeStyle='#c9ced4';c.lineWidth=.8;c.beginPath();c.moveTo(1,-24);c.lineTo(1,-11);c.stroke();c.fillStyle='#d9dde2';c.fillRect(2.5,-19,2.5,2)}
+  if(L.vest){c.fillStyle=L.vest;c.beginPath();c.moveTo(-5.5,-24);c.lineTo(0,-24);c.lineTo(1.5,-12);c.lineTo(-5.5,-12);c.closePath();c.fill();c.beginPath();c.moveTo(3,-24);c.lineTo(5.5,-24);c.lineTo(5.5,-12);c.lineTo(4,-12);c.closePath();c.fill()}
+  if(L.robe){c.fillStyle='#8e2434';c.beginPath();c.moveTo(-5.5,-25);c.lineTo(2,-25);c.lineTo(5.5,-13);c.lineTo(-5.5,-13);c.closePath();c.fill()}
+  if(L.shawl){c.fillStyle=L.shawl;c.beginPath();c.moveTo(-6.5,-25);c.lineTo(6.5,-25);c.lineTo(4,-17);c.lineTo(-6,-15);c.closePath();c.fill()}
+  if(L.scarf){c.strokeStyle=L.scarf;c.lineWidth=2.4;c.beginPath();c.moveTo(-4,-25);c.lineTo(4.5,-15);c.stroke()}
+  if(L.num){c.fillStyle='#1f2b44';c.font='bold 6px sans-serif';c.textAlign='center';c.save();c.scale(face,1);c.fillText(L.num,0,-15.5);c.restore()}
+  if(L.steth){c.strokeStyle='#6b7480';c.lineWidth=.9;c.beginPath();c.moveTo(-2.5,-25);c.quadraticCurveTo(-1,-18,1.5,-19);c.quadraticCurveTo(3.5,-20,3,-25);c.stroke();c.fillStyle='#6b7480';c.beginPath();c.arc(1.5,-18.5,1,0,7);c.fill()}
+  // arms
+  const ac=L.robe?'#8e2434':L.shawl?L.shawl:L.top;
+  c.strokeStyle=ac;c.lineWidth=2.8;c.beginPath();c.moveTo(-5,-23);c.lineTo(-6.5-sw*.5,-14);c.moveTo(5,-23);c.lineTo(opt.hold||L.book||L.note?7.5:6.5+sw*.5,opt.hold||L.book||L.note?-17:-14);c.stroke();
+  c.fillStyle=L.skin;c.beginPath();c.arc(-6.5-sw*.5,-13.5,1.4,0,7);c.fill();
+  const hx=L.book||L.note?7.8:6.5+sw*.5,hy=L.book||L.note?-17:-13.5;
+  if(L.book){c.fillStyle=L.book;c.fillRect(6,-21,5,6.5);c.fillStyle='#fff';c.fillRect(6.6,-20.4,.8,5.3)}
+  if(L.note){c.fillStyle='#f4efe0';c.fillRect(6,-21,4.5,6);c.strokeStyle='#8a7a5a';c.lineWidth=.5;c.beginPath();c.moveTo(6.8,-19);c.lineTo(9.8,-19);c.moveTo(6.8,-17.5);c.lineTo(9.8,-17.5);c.stroke()}
+  c.fillStyle=L.skin;c.beginPath();c.arc(hx,hy,1.4,0,7);c.fill();
+  if(L.beads){c.fillStyle='#5a3218';for(let i=0;i<5;i++){c.beginPath();c.arc(-6.5-sw*.5+(i-2)*.9,-11.5+Math.abs(i-2)*.6,.8,0,7);c.fill()}}
+  // head
+  c.fillStyle=L.skin;c.fillRect(-1.5,-27,3,3);
+  const hy0=-31-(L.hunch?-.6:0),hx0=L.hunch?1.2:0;
+  c.beginPath();c.arc(hx0,hy0,5.8,0,7);c.fill();
+  if(L.hair){c.fillStyle=L.hair;
+    if(L.hs==='bob'){c.beginPath();c.arc(hx0,hy0-.5,6.4,Math.PI*.95,Math.PI*2.02);c.lineTo(hx0+6,hy0+3);c.lineTo(hx0+4,hy0);c.lineTo(hx0-6.2,hy0+3.5);c.closePath();c.fill()}
+    else{c.beginPath();c.arc(hx0,hy0-.6,6.1,Math.PI*1.02,Math.PI*1.98);c.lineTo(hx0+4.5,hy0-2.2);c.lineTo(hx0-5.8,hy0+1.5);c.closePath();c.fill()}
+    if(L.hs==='pony'){c.strokeStyle=L.hair;c.lineWidth=2.4;c.beginPath();c.moveTo(hx0-5,hy0-2);c.quadraticCurveTo(hx0-10,hy0+1,hx0-8,hy0+6);c.stroke()}
+    if(L.hs==='bun'){c.beginPath();c.arc(hx0-4.5,hy0-4.5,2.8,0,7);c.fill()}
+    if(L.hs==='braid'){c.beginPath();c.arc(hx0-5,hy0-.5,2.2,0,7);c.fill()}
+    if(L.hs==='side'){c.beginPath();c.moveTo(hx0-5,hy0-4);c.quadraticCurveTo(hx0+2,hy0-8,hx0+6,hy0-3);c.lineTo(hx0+2,hy0-4);c.closePath();c.fill()}}
+  else{c.fillStyle='rgba(60,30,10,.18)';c.beginPath();c.arc(hx0,hy0-1,5.6,Math.PI,Math.PI*2);c.fill()}
+  if(L.band){c.strokeStyle=L.band;c.lineWidth=1.4;c.beginPath();c.arc(hx0,hy0-.5,5.9,Math.PI*1.1,Math.PI*1.9);c.stroke()}
+  if(L.hat==='topi'){c.fillStyle='#b8323f';c.beginPath();c.moveTo(hx0-5.5,hy0-3.5);c.lineTo(hx0-4.2,hy0-9.5);c.lineTo(hx0+5.2,hy0-8.5);c.lineTo(hx0+5.8,hy0-3.5);c.closePath();c.fill();
+    const tc=['#e2b52a','#2a64b0','#f2f2f2','#2f8a45'];for(let i=0;i<5;i++){c.fillStyle=tc[i%4];c.fillRect(hx0-4+i*2,hy0-7.5+(i%2),1.2,1.2)}}
+  if(L.hat==='cap'){c.fillStyle='#c7312e';c.beginPath();c.arc(hx0,hy0-1.2,6,Math.PI,Math.PI*2);c.fill();c.fillRect(hx0-9,hy0-2.4,5,1.8)}
+  if(L.hat==='sun'){c.fillStyle='#e6d6a8';c.beginPath();c.ellipse(hx0,hy0-4.8,10,2,0,0,7);c.fill();c.beginPath();c.arc(hx0,hy0-5,5.2,Math.PI,Math.PI*2);c.fill();c.fillStyle='#8e2434';c.fillRect(hx0-5.2,hy0-6.2,10.4,1.2)}
+  // face
+  c.fillStyle='#1c1410';c.beginPath();c.arc(hx0+2.6,hy0-.4,.85,0,7);c.fill();
+  if(L.glasses){c.strokeStyle='#2a2a2a';c.lineWidth=.7;c.beginPath();c.arc(hx0+2.7,hy0-.4,1.9,0,7);c.stroke();c.beginPath();c.moveTo(hx0+.8,hy0-.6);c.lineTo(hx0-2.5,hy0-1);c.stroke()}
+  if(L.mous){c.strokeStyle='#8f8a84';c.lineWidth=1.1;c.beginPath();c.moveTo(hx0+2.8,hy0+2.4);c.lineTo(hx0+5.6,hy0+2.2);c.stroke()}
+  c.strokeStyle='rgba(60,25,20,.7)';c.lineWidth=.7;c.beginPath();c.moveTo(hx0+3.2,hy0+3.3);c.lineTo(hx0+4.8,hy0+3.1);c.stroke();
+  if(L.earring){c.fillStyle='#2bb3a3';c.beginPath();c.arc(hx0-.8,hy0+2.6,1,0,7);c.fill()}
+  c.fillStyle='rgba(220,90,80,.25)';c.beginPath();c.arc(hx0+3.2,hy0+1.6,1.2,0,7);c.fill();
+  c.restore();c.restore();
+}
+const PORTRAIT={};
+function makePortraits(){for(const a of P){const cc=document.createElement('canvas');cc.width=cc.height=96;const c=cc.getContext('2d');
+  c.fillStyle='#dfe8ee';c.fillRect(0,0,96,96);c.fillStyle=a.color;c.globalAlpha=.28;c.beginPath();c.arc(48,96,44,0,7);c.fill();c.globalAlpha=1;
+  drawPerson(c,{id:a.id},44,192,4.6,0,1,{noShadow:true});PORTRAIT[a.id]=cc.toDataURL()}}
+makePortraits();
+
+function drawMap(dt){
+  const t=S.t;
+  g.clearRect(0,0,1000,680);g.drawImage(bgCanvas,0,0,1000,680);
+  const na=nightAlpha(t);
+  if(na>0){g.fillStyle=`rgba(14,20,48,${na})`;g.fillRect(0,0,1000,680);
+    g.fillStyle=`rgba(255,255,255,${na*1.4})`;const r=mulberry(3);for(let i=0;i<50;i++){const x=r()*1000,y=r()*70;g.fillRect(x,y,1.5,1.5)}
+    g.fillStyle=`rgba(255,205,110,${Math.min(1,na*1.8)})`;for(const id in LOC){const L=LOC[id];if(L.kind==='ridge'||L.kind==='market')continue;g.fillRect(L.x-14,L.y-12,5,5);g.fillRect(L.x+9,L.y-12,5,5)}}
+  const counts={};A.forEach(a=>counts[a.loc]=(counts[a.loc]||0)+1);
+  for(const a of A)walk(a,dt);
+  for(const a of A){if(a.chatWith&&t<a.chatUntil&&a.id<a.chatWith){const b=AG[a.chatWith];g.strokeStyle='rgba(255,255,255,.95)';g.lineWidth=2;g.setLineDash([3,3]);g.beginPath();g.moveTo(a.x,a.y-24);g.lineTo(b.x,b.y-24);g.stroke();g.setLineDash([])}}
+  const order=[...A].sort((p,q)=>p.y-q.y);
+  for(const a of order){
+    const asleep=!awake(a),chatting=a.chatWith&&t<a.chatUntil;
+    if(chatting&&!(a.v>1)){const b=AG[a.chatWith];a.face=b.x<a.x?-1:1}
+    if(a.id===S.sel){g.fillStyle='rgba(255,210,74,.55)';g.beginPath();g.ellipse(a.x,a.y,13,4.5,0,0,7);g.fill();g.strokeStyle='#ffd24a';g.lineWidth=2;g.stroke()}
+    if(asleep&&!(a.v>1)){g.save();g.globalAlpha=.8;g.translate(a.x,a.y-3);g.rotate(-Math.PI/2*a.face);drawPerson(g,a,0,0,1.05,0,a.face,{noShadow:true});g.restore();
+      g.fillStyle='rgba(255,255,255,.9)';g.font='700 10px sans-serif';g.textAlign='center';g.fillText('z',a.x+12,a.y-12);g.font='700 8px sans-serif';g.fillText('z',a.x+17,a.y-18)}
+    else drawPerson(g,a,a.x,a.y,1.25,a.ph||0,a.face||1);
+    if(!asleep&&(a.id===S.sel||chatting||counts[a.loc]<=3)){
+      const lbl=chatting?'聊天':(a.cur?ACT[a.cur.act].ab:'');g.font='500 10.5px "Noto Sans TC",sans-serif';g.textAlign='center';const w=g.measureText(lbl).width+10;
+      const bx=a.x-w/2,by=a.y-(LOOK[a.id].hat==='sun'||LOOK[a.id].doko?70:64);g.fillStyle=chatting?'#fff6d6':'rgba(255,255,255,.92)';roundRect(g,bx,by,w,15,4);g.fill();g.fillStyle='#1c2330';g.fillText(lbl,a.x,by+11)}
+    if(a.id===S.sel){g.font='700 11.5px "Noto Sans TC",sans-serif';g.textAlign='center';g.lineWidth=3.5;g.strokeStyle='rgba(255,255,255,.9)';g.strokeText(a.name,a.x,a.y+15);g.fillStyle='#1c2330';g.fillText(a.name,a.x,a.y+15)}
+  }
+}
+function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
+cv.addEventListener('click',ev=>{const r=cv.getBoundingClientRect();const x=(ev.clientX-r.left)*1000/r.width,y=(ev.clientY-r.top)*680/r.height;let best=null,bd=24;for(const a of A){const d=Math.hypot(a.x-x,a.y-20-y);if(d<bd){bd=d;best=a}}if(best){select(best.id);showTab('agent')}});
+
+/* ============ Rendering: panel ============ */
+let dirty=true,logDirty=true;
+const TYPE={obs:['觀察','b-obs'],chat:['對話','b-chat'],plan:['計畫','b-plan'],reflection:['反思','b-refl'],seed:['種子','b-seed'],inner:['內心聲音','b-inner']};
+function phase(t){const h=(t%DAY)/60;return h<9?'清晨':h<12?'上午':h<14?'中午':h<17?'下午':h<20?'傍晚':'夜晚'}
+function renderClock(){$('#cDay').textContent=`第${dayOf(S.t)}天`;$('#cTime').textContent=hm(S.t);$('#cPhase').textContent=phase(S.t)}
+function renderLegend(){$('#legend').innerHTML=A.map(a=>`<button class="chip" data-id="${a.id}" aria-pressed="${a.id===S.sel}"><img src="${PORTRAIT[a.id]}" alt="" style="border-color:${a.color}">${esc(a.name)}</button>`).join('')}
+$('#legend').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b){select(b.dataset.id);showTab('agent')}});
+function select(id){S.sel=id;$('#retOut').innerHTML='';$('#qMem').value='';renderLegend();renderAgentStatic();renderAgent();renderIV()}
+function renderAgentStatic(){const a=AG[S.sel];
+  $('#aAv').style.background=`center/cover url(${PORTRAIT[a.id]})`;$('#aAv').style.borderColor=a.color;$('#aAv').textContent='';$('#aName').textContent=a.full;$('#aMeta').textContent=`${a.age} 歲 · ${a.job}`;
+  $('#aPersona').innerHTML=`<p class="persona">${esc(a.persona.replace(/；/g,'；'))}</p><h3 style="margin-top:10px">拆成種子記憶</h3><ol class="seedlist">${a.persona.split('；').map(s=>`<li>${esc(s)}</li>`).join('')}</ol>`;
+  $('#presets').innerHTML=['請介紹一下你自己。','你知道有誰要參選村代表嗎？','最近鎮上有什麼聚會嗎？','你明天打算做什麼？',a.id==='dolma'?'茶會準備得怎麼樣了？':'你對卓瑪有什麼印象？'].map(q=>`<button>${esc(q)}</button>`).join('')}
+function renderAgent(){const a=AG[S.sel],t=S.t;
+  const chatting=a.chatWith&&t<a.chatUntil;
+  $('#aNow').innerHTML=`<span class="eyebrow">${stamp(t)} · ${esc(LOC[a.loc].name)}${a.step?' › '+esc(a.step.sub):''}</span><br>${chatting?`<b>正在和${esc(AG[a.chatWith].name)}聊天</b>`:`<b>${esc(a.cur.desc)}</b>${a.step&&a.cur.act!=='sleep'?'：'+esc(a.step.text):''}`}`
+    +`<br><span class="note">知道：${a.know.election?'帕桑參選':''}${a.know.election&&a.know.party?'、':''}${a.know.party?'燈節茶會'+(a.party==='yes'?'（會出席）':a.party==='no'?'（可能不去）':a.party==='host'?'（主辦人）':''):''}${!a.know.election&&!a.know.party?'（還沒聽說任何消息）':''} · 認識 ${a.acq.size} 人</span>`;
+  const h=(t%DAY)/60;
+  let html='<ul class="plan">';
+  for(const b of a.plan){const cur=a.cur===b||(a.cur&&a.cur.start===b.start&&a.cur.act===b.act&&awake(a));
+    html+=`<li class="${cur?'cur':''} ${b.added?'chg':''}"><span class="tm">${hh(b.start)}–${hh(b.end)}</span><span>${esc(b.desc)}<span class="note"> · ${esc(LOC[b.loc].name)}</span>${b.added?' <span class="note">（因邀約新增）</span>':''}</span></li>`;
+    if(cur&&a.steps.length>1)html+=`<li style="display:block;padding:0"><ul class="steps">${a.steps.map(s=>`<li class="${s===a.step?'cur':''}">${hm(s.start)} ${esc(s.sub)}：${esc(s.text)}</li>`).join('')}</ul></li>`}
+  html+=`<li class="${!awake(a)?'cur':''}"><span class="tm">${hh(a.sleep)}–</span><span>睡覺<span class="note"> · ${esc(LOC[a.home].name)}</span></span></li></ul>`;
+  $('#aPlan').innerHTML=`<p class="note" style="margin:0 0 6px">第 ${a.planDay} 天的日計畫${a.planDay!==dayOf(t)||h<6?'（夜間）':''}</p>`+html;
+  $('#aMemCount').textContent=`${a.mem.length} 筆`;
+  const list=a.mem.slice(-80).reverse();
+  $('#aMem').innerHTML=list.map(m=>`<li class="${m.type==='reflection'?'refl':''}"><span class="id">#${m.id}</span><span><span class="badge ${TYPE[m.type][1]}">${TYPE[m.type][0]}</span>${esc(m.text)}${m.q?`<br><span class="note">焦點問題：${esc(m.q)}</span>`:''}<br><span class="meta">${stamp(m.t)} · 重要性 ${m.imp}${m.ev?' · 依據 '+m.ev.map(i=>'#'+i).join(' '):''}</span></span></li>`).join('');
+}
+function renderRet(list){$('#retOut').innerHTML=`<li class="note" style="border:0;padding:0">分數最高的 ${list.length} 筆（藍：新近性，金：重要性，綠：相關性）</li>`+list.map(r=>`<li><span class="badge ${TYPE[r.m.type][1]}">${TYPE[r.m.type][0]}</span>#${r.m.id} ${esc(r.m.text)}<div class="bars"><div class="bar r"><span style="width:${(r.recN*100).toFixed(0)}%"></span></div><div class="bar i"><span style="width:${(r.impN*100).toFixed(0)}%"></span></div><div class="bar v"><span style="width:${(r.relN*100).toFixed(0)}%"></span></div><span>${r.score.toFixed(2)}</span></div></li>`).join('')}
+$('#btnRet').onclick=()=>{const q=$('#qMem').value.trim();if(!q)return;renderRet(retrieve(AG[S.sel],{text:q,kw:kwFromText(q)},8,S.t))};
+$('#qMem').addEventListener('keydown',e=>{if(e.key==='Enter')$('#btnRet').click()});
+
+/* interview */
+let ivCtl=null;
+function renderIV(){const a=AG[S.sel];$('#ivLog').innerHTML=a.iv.map(x=>`<div class="q">${esc(x.q)}</div><div class="a">${esc(x.a||'思考中…')}<small>${x.mode==='local'?'本機模式 · ':''}檢索到的記憶：${x.ret.map(r=>'#'+r.m.id).join(' ')}${x.err?' · '+esc(x.err):''}</small></div>`).join('');const l=$('#ivLog');l.scrollTop=l.scrollHeight}
+async function ask(q){
+  const a=AG[S.sel];q=q.trim();if(!q||ivCtl)return;
+  const ret=retrieve(a,{text:q,kw:kwFromText(q)},8,S.t);
+  const item={q,a:'',ret};a.iv.push(item);$('#ivQ').value='';
+  if(!sample){item.mode='local';item.a='我記得：\n'+ret.slice(0,4).map(r=>'・'+r.m.text).join('\n');renderIV();return}
+  renderIV();
+  const hist=a.iv.slice(-5,-1).map(x=>`訪談者：${x.q}\n${a.name}：${x.a}`).join('\n');
+  const prompt=`你正在扮演「貝瑪崗」小鎮模擬中的居民${a.full}。貝瑪崗是喜馬拉雅山腳的虛構小鎮，這個模擬仿照〈Generative Agents〉論文。
+你的人設：${a.persona}
+現在時間：${stamp(S.t)}。你在${LOC[a.loc].name}，正在${a.cur.desc}。
+今天的計畫：${a.plan.map(b=>hh(b.start)+' '+b.desc).join('；')}
+從你的記憶流中檢索到、與問題最相關的記憶（依檢索分數排序，#後是記憶編號）：
+${memLines(ret)}
+${hist?'先前的訪談內容：\n'+hist+'\n':''}規則：用第一人稱、台灣繁體中文口語回答，2 到 5 句。只根據人設和上面的記憶回答；記憶裡沒有的事，就說不知道或不記得，不要編造。保持角色的個性和說話習慣。
+訪談者問：${q}`;
+  ivCtl=new AbortController();$('#btnStop').classList.remove('hidden');$('#btnAsk').disabled=true;
+  try{await sample(prompt,{cache:false,signal:ivCtl.signal,onText:({text})=>{item.a=text;renderIV()}})}
+  catch(e){item.a=e.text||item.a;if(e.code!=='cancelled'){item.err=errCopy(e);disableClaude(e);if(!sample&&!item.a){item.mode='local';item.a='我記得：\n'+ret.slice(0,4).map(r=>'・'+r.m.text).join('\n')}}}
+  finally{ivCtl=null;$('#btnStop').classList.add('hidden');$('#btnAsk').disabled=false;renderIV()}
+}
+$('#btnAsk').onclick=()=>ask($('#ivQ').value);
+$('#ivQ').addEventListener('keydown',e=>{if(e.key==='Enter')ask($('#ivQ').value)});
+$('#btnStop').onclick=()=>ivCtl&&ivCtl.abort();
+$('#presets').addEventListener('click',e=>{const b=e.target.closest('button');if(b)ask(b.textContent)});
+
+/* inner voice & reflection */
+$('#btnInner').onclick=()=>{const a=AG[S.sel],s=$('#inner').value.trim();if(!s)return;const k=kwFromText(s);
+  remember(a,'inner',s,8,[...k],S.t);
+  if(k.has('party')&&!a.know.party){a.know.party=S.t;a.knowFrom.party='inner';if(a.id!=='dolma'){a.party='yes';if(dayOf(S.t)===2&&(S.t%DAY)<17*60)a.plan=insertBlock(a.plan,{start:17,end:19,loc:'teahouse',act:'party',desc:'參加卓瑪的燈節茶會',added:true})}}
+  if(k.has('election')&&!a.know.election){a.know.election=S.t;a.knowFrom.election='inner'}
+  addLog({t:S.t,type:'plan',who:[a.id],text:`內心聲音對${a.name}說：「${s}」`});$('#inner').value='';dirty=true};
+$('#btnReflect').onclick=async()=>{const a=AG[S.sel];
+  if(sample){const btn=$('#btnReflect');btn.disabled=true;$('#reflNote').textContent='Claude 正在閱讀記憶流…';
+    const recent=a.mem.slice(-45).map(m=>`#${m.id} [${stamp(m.t)}]（${TYPE[m.type][0]}，重要性${m.imp}）${m.text}`).join('\n');
+    const prompt=`以下是小鎮模擬中居民${a.full}（${a.job}）的記憶流節錄。人設：${a.persona}\n\n${recent}\n\n仿照〈Generative Agents〉論文的反思步驟：先提出 2 個關於${a.name}最值得思考的焦點問題，再從上面的記憶歸納出 2 條高層次洞見，以${a.name}的第一人稱、台灣繁體中文寫，每條不超過 50 字，並列出依據的記憶編號。只回覆 JSON 陣列：[{"question":"…","insight":"…","evidence":[3,7]}]`;
+    try{const out=await sample.json(prompt,{cache:false});let n=0;
+      for(const r of (Array.isArray(out)?out:[]).slice(0,3)){if(!r||!r.insight)continue;const ev=(r.evidence||[]).map(Number).filter(i=>i>0&&i<=a.mem.length);const m=remember(a,'reflection',String(r.insight),Math.min(9,6+ev.length/2|0),[...kwFromText(String(r.insight))],S.t,ev);m.q=String(r.question||'');n++}
+      addLog({t:S.t,type:'refl',who:[a.id],text:`${a.name}（由 Claude）反思了 ${n} 條洞見。`});$('#reflNote').textContent=n?`寫入 ${n} 條反思。`:'Claude 沒有給出可用的反思。'}
+    catch(e){disableClaude(e);$('#reflNote').textContent=errCopy(e)}
+    finally{btn.disabled=false;dirty=true}}
+  else{const n=reflectLocal(a,S.t);$('#reflNote').textContent=n?`寫入 ${n} 條反思。`:'目前沒有新的洞見。';dirty=true}};
+
+/* log */
+function renderLog(){const f=S.filter;const items=S.log.filter(e=>f==='all'||e.type===f).slice(-160).reverse();
+  $('#log').innerHTML=items.map(e=>`<li><span class="when">${stamp(e.t)}</span>${e.type==='chat'?'<span class="badge b-chat">對話</span>':e.type==='share'?'<span class="badge b-seed">消息</span>':e.type==='refl'?'<span class="badge b-refl">反思</span>':'<span class="badge b-plan">計畫</span>'}${esc(e.text)}${e.lines?`<div class="lines">${e.pending?'<p class="note">Claude 正在寫這段對話…</p>':''}${e.lines.map(l=>`<p><b style="color:${AG[l.s].color}">${esc(AG[l.s].name)}</b>：${esc(l.x)}</p>`).join('')}${e.byClaude?'<p class="note">由 Claude 生成</p>':''}${e.note?`<p class="note">${esc(e.note)}</p>`:''}</div>`:''}</li>`).join('')||'<li class="note">還沒有事件。</li>'}
+$('#logFilters').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.filter=b.dataset.f;[...$('#logFilters').children].forEach(x=>x.setAttribute('aria-pressed',x===b));renderLog()});
+
+/* diffusion */
+function renderDiff(){
+  const last=S.stats[S.stats.length-1];
+  $('#sElec').textContent=`${A.filter(a=>a.know.election).length}/10`;$('#sParty').textContent=`${A.filter(a=>a.know.party).length}/10`;$('#sDens').textContent=density().toFixed(2);
+  const W=520,H=190,l=30,r=10,tp=12,bt=26,span=TEND-T0;
+  const X=t=>l+(t-T0)/span*(W-l-r),Y=v=>tp+(1-v/10)*(H-tp-bt);
+  let s='';for(let v=0;v<=10;v+=2)s+=`<line x1="${l}" x2="${W-r}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${l-6}" y="${Y(v)+3}" text-anchor="end">${v}</text>`;
+  for(const[t,lab]of[[T0,'D1 06'],[T0+6*60,'D1 12'],[T0+12*60,'D1 18'],[DAY+6*60,'D2 06'],[DAY+12*60,'D2 12'],[DAY+18*60,'D2 18']])s+=`<text x="${X(t)}" y="${H-8}" text-anchor="middle">${lab}</text>`;
+  s+=`<rect x="${X(DAY+17*60)}" y="${tp}" width="${X(DAY+19*60)-X(DAY+17*60)}" height="${H-tp-bt}" fill="var(--gold)" opacity=".12"/><text x="${X(DAY+18*60)}" y="${tp+10}" text-anchor="middle">茶會</text>`;
+  const line=(k,c)=>{const pts=S.stats.map(p=>`${X(p.t).toFixed(1)},${Y(p[k]).toFixed(1)}`).join(' ');const e=S.stats[S.stats.length-1];return `<polyline points="${pts}" fill="none" stroke="${c}" stroke-width="2.2" stroke-linejoin="round"/><circle cx="${X(e.t)}" cy="${Y(e[k])}" r="3.5" fill="${c}"/>`};
+  s+=line('election','var(--blue)')+line('party','var(--maroon)');
+  s+=`<g><rect x="${l+8}" y="${tp+4}" width="10" height="3" fill="var(--blue)"/><text x="${l+22}" y="${tp+8}">參選消息</text><rect x="${l+82}" y="${tp+4}" width="10" height="3" fill="var(--maroon)"/><text x="${l+96}" y="${tp+8}">燈節茶會</text></g>`;
+  $('#chart').innerHTML=s;
+  const cx=260,cy=165,R=125,pos={};A.forEach((a,i)=>{const an=-Math.PI/2+i/A.length*Math.PI*2;pos[a.id]={x:cx+R*Math.cos(an)*1.3,y:cy+R*Math.sin(an)}});
+  const init=new Set(INIT_EDGES.map(e=>[...e].sort().join()));let n='';
+  const drawn=new Set();for(const a of A)for(const b of a.acq){const k=[a.id,b].sort().join();if(drawn.has(k))continue;drawn.add(k);const isNew=!init.has(k);n+=`<line x1="${pos[a.id].x}" y1="${pos[a.id].y}" x2="${pos[b].x}" y2="${pos[b].y}" stroke="${isNew?'var(--maroon)':'var(--line)'}" stroke-width="${isNew?2:1.5}"/>`}
+  for(const a of A){const p=pos[a.id];n+=`<image href="${PORTRAIT[a.id]}" x="${p.x-15}" y="${p.y-15}" width="30" height="30" clip-path="url(#cc)"/><circle cx="${p.x}" cy="${p.y}" r="15" fill="none" stroke="${a.color}" stroke-width="2.5"/><text x="${p.x}" y="${p.y+(p.y>cy?28:-19)}" text-anchor="middle" style="font-family:var(--body);font-size:11px;fill:var(--ink)" dy="${p.y>cy?4:-2}">${esc(a.name)}</text>`}
+  $('#net').innerHTML='<defs><clipPath id="cc" clipPathUnits="objectBoundingBox"><circle cx=".5" cy=".5" r=".5"/></clipPath></defs>'+n;
+  const src=(a,f)=>a.know[f]?(a.knowFrom[f]==='self'?'本人':a.knowFrom[f]==='inner'?'內心聲音':'聽'+AG[a.knowFrom[f]].name+'說')+`<span class="note"> ${stamp(a.know[f])}</span>`:'<span class="note">—</span>';
+  $('#who').innerHTML=`<tr><th>居民</th><th>參選消息</th><th>燈節茶會</th><th>出席</th></tr>`+A.map(a=>`<tr><td>${esc(a.name)}</td><td>${src(a,'election')}</td><td>${src(a,'party')}</td><td>${a.id==='dolma'?'主辦':S.attend.has(a.id)?'✓ 出席':a.party==='yes'?'答應':a.party==='no'?'婉拒':'—'}</td></tr>`).join('');
+  if(S.done){const att=[...S.attend].filter(i=>i!=='dolma');const d0=S.stats[0].d;
+    $('#sumBox').innerHTML=`<div class="summary"><h3>兩天後的結果</h3><p>參選消息從 1 人傳到 <b>${A.filter(a=>a.know.election).length}</b> 人；燈節茶會從 1 人傳到 <b>${A.filter(a=>a.know.party).length}</b> 人，答應 ${A.filter(a=>a.party==='yes').length} 人、實際出席 <b>${att.length}</b> 人${att.length?'（'+att.map(i=>AG[i].name).join('、')+'）':''}。</p><p>人際網路密度從 ${d0.toFixed(2)} 增加到 ${density().toFixed(2)}，新認識 ${S.newEdges.length} 對。論文的 25 人小鎮對應數字：參選 4%→32%、派對 4%→52%、密度 0.167→0.74。</p></div>`}
+  else $('#sumBox').innerHTML='';
+}
+
+/* tabs */
+let tab='agent';
+function showTab(k){tab=k;document.querySelectorAll('.tabs button').forEach(b=>b.setAttribute('aria-selected',b.dataset.tab===k));['agent','log','diff','about'].forEach(x=>$('#tab-'+x).classList.toggle('hidden',x!==k));dirty=true;logDirty=true}
+document.querySelector('.tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(b)showTab(b.dataset.tab)});
+function renderTree(){$('#tree').textContent='貝瑪崗\n'+Object.entries(LOC).map(([id,L],i,arr)=>{const last=i===arr.length-1;return (last?'└─ ':'├─ ')+L.name+'\n'+L.subs.map((s,j)=>(last?'   ':'│  ')+(j===L.subs.length-1?'└─ ':'├─ ')+s).join('\n')}).join('\n')}
+
+/* ============ Controls & loop ============ */
+function setStatus(s){$('#status').textContent=s}
+$('#btnPlay').onclick=()=>{if(S.done)return;S.running=!S.running;$('#btnPlay').textContent=S.running?'暫停':'播放';setStatus(S.running?'模擬進行中。':'已暫停。')};
+$('#btnStep').onclick=()=>{if(!S.busy)tick()};
+$('#btnReset').onclick=()=>{if(ivCtl)ivCtl.abort();const sel=S.sel,uc=S.useClaude;init();S.sel=sel;S.useClaude=uc;$('#btnPlay').disabled=false;$('#btnStep').disabled=false;$('#btnPlay').textContent='播放';setStatus('已重新開始。');select(sel)};
+$('#useClaude').onchange=e=>{S.useClaude=e.target.checked;setStatus(S.useClaude?'之後的每段對話都會交給 Claude 撰寫，生成時模擬會暫停。':'對話改回本機範本。')};
+let acc=0,prev=performance.now();
+function loop(now){const dt=Math.min(.1,(now-prev)/1000);prev=now;if(!S.running||S.done)curTps=1;
+  if(S.running&&!S.busy&&!S.done){const allAsleep=A.every(a=>!awake(a));const tps=allAsleep?24:Number($('#speed').value);curTps=tps;acc+=dt*tps;let n=0;while(acc>=1&&n<30&&!S.busy&&!S.done){acc-=1;tick();n++}}
+  drawMap(dt);
+  if(dirty){renderClock();if(tab==='agent')renderAgent();if(tab==='diff')renderDiff();dirty=false}
+  if(logDirty&&tab==='log'){renderLog();logDirty=false}
+  requestAnimationFrame(loop)}
+
+init();setupCanvas();renderLegend();renderAgentStatic();renderAgent();renderIV();renderTree();
+if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>setupCanvas());
+requestAnimationFrame(loop);
+})();
+</script>
+</body>
+</html>
