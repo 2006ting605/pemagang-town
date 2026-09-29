@@ -120,6 +120,10 @@ svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
 .summary p{margin:4px 0}
 .about p,.about li{max-width:65ch;font-size:13.5px}
 .about ol,.about ul{padding-left:1.3em}
+.sumtext{white-space:pre-wrap;font-family:var(--body);font-size:13px;background:var(--soft);border-radius:8px;padding:8px 12px;margin:0 0 8px}
+.ivcat{margin-bottom:8px}
+.runqa{padding:6px 0;border-bottom:1px dashed var(--line);font-size:13px}
+.runqa p{margin:2px 0;white-space:pre-wrap}
 .tree{font-family:var(--mono);font-size:12px;white-space:pre;overflow-x:auto;background:var(--soft);padding:10px;border-radius:8px;color:var(--ink)}
 .note{font-size:12.5px;color:var(--muted)}
 .hidden{display:none!important}
@@ -168,11 +172,22 @@ svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
         <ul class="mem" id="aMem" style="margin-top:8px"></ul>
       </div></details>
       <details><summary>人設與種子記憶</summary><div class="inner" id="aPersona"></div></details>
+      <details open><summary>智慧體摘要描述（論文附錄 A）</summary><div class="inner">
+        <p class="note" style="margin-top:0">以「核心特徵」「目前的日常工作」「對近期生活進展的感受」三個查詢檢索記憶後整理成摘要並快取，每天早上更新；訪談時會放進提示詞。</p>
+        <pre class="sumtext" id="sumText"></pre>
+        <div class="row"><span class="note" id="sumMeta"></span><button id="btnSum" class="hidden">用 Claude 重新整理</button></div>
+      </div></details>
       <details open><summary>訪談這位居民</summary><div class="inner">
         <p class="note" id="ivNote">和論文的評估方式一樣，用自然語言「訪談」居民：先從記憶流檢索相關記憶，再讓 Claude 以角色身分回答。</p>
         <div class="presets" id="presets"></div>
         <div class="iv" id="ivLog"></div>
         <div class="row"><input type="text" id="ivQ" placeholder="問他一個問題…"><button id="btnAsk">發問</button><button id="btnStop" class="hidden">停止</button></div>
+      </div></details>
+      <details><summary>25 題結構化訪談（論文附錄 B）</summary><div class="inner">
+        <p class="note" style="margin-top:0">論文用 25 個問題評估五種能力。題目中的人名會換成這位居民互動最多的人；「丹增·多吉」是不存在的人，用來檢查會不會編造。點單題會在上方訪談中提問。</p>
+        <div id="ivCats"></div>
+        <div class="row" style="margin-top:8px"><button id="btnRun" class="primary">一次跑完 25 題</button><button id="btnRunStop" class="hidden">停止</button></div>
+        <div id="runOut"></div>
       </div></details>
       <details><summary>內心聲音與反思</summary><div class="inner">
         <p class="note">論文中使用者可以用「內心聲音」影響代理人。你輸入的句子會以高重要性寫入他的記憶流；提到燈節茶會或參選時，他也會因此得知這件事。</p>
@@ -219,6 +234,8 @@ svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
         <li><b>計畫</b>：每天早上從人設產生日計畫，再遞迴拆成小時區塊和 10 分鐘動作；答應赴約、聽到內心聲音都會改寫計畫。</li>
         <li><b>反應與對話</b>：在同一地點碰面時，居民依熟識度、個性與「有沒有消息想說」決定是否交談，交談內容會寫回雙方的記憶流。</li>
       </ol>
+      <h3>論文附錄的對應</h3>
+      <p><b>附錄 A 摘要快取</b>：每位居民的摘要描述由三個查詢檢索整理，每天早上更新，訪談時放進提示詞。<b>附錄 B 訪談</b>：25 題分成自我認知、記憶、計畫、反應、反思五類，改寫成貝瑪崗的情境。</p>
       <h3>哪些部分用到 Claude</h3>
       <p>為了能連續跑兩天，行為引擎在瀏覽器內用規則模擬。下面三件事可以交給 Claude，會使用你自己的 Claude 額度，第一次使用時會先詢問：<b>訪談居民</b>、<b>用 Claude 寫對話</b>（開啟後，每段對話都會暫停模擬等待生成）、<b>讓 Claude 反思</b>。</p>
       <h3>場景樹（論文以樹狀結構描述環境）</h3>
@@ -248,7 +265,35 @@ const LOC={
   h_gurung:{name:'古隆家石屋',x:305,y:590,subs:['廚房','客廳','臥室'],kind:'house'},
   h_rai:{name:'拉伊家',x:850,y:590,subs:['廚房','書桌','臥室'],kind:'house'}
 };
-const ROADS=[['bus','market'],['bus','health'],['market','teahouse'],['teahouse','lodge'],['lodge','health'],['lodge','factory'],['factory','teagarden'],['teahouse','ridge'],['ridge','gompa'],['market','school'],['school','gompa'],['market','mill'],['market','h_gurung'],['health','h_rai'],['school','h_gurung']];
+/* Road network: main vehicle road, village footpaths, stone-step mountain trails. Each edge passes through hand-placed bends. */
+const NODE={};for(const id in LOC)NODE[id]={x:LOC[id].x,y:LOC[id].y+14};
+Object.assign(NODE,{teagarden:{x:830,y:280},market:{x:420,y:500},ridge:{x:400,y:196},exit:{x:545,y:700},peak:{x:585,y:132}});
+const ROADS=[
+ ['exit','bus','main',[[548,668],[520,648]]],
+ ['bus','market','main',[[478,602],[455,565],[438,532]]],
+ ['market','teahouse','main',[[452,478],[498,450],[524,410]]],
+ ['teahouse','lodge','main',[[585,388],[650,425]]],
+ ['lodge','factory','main',[[775,428],[842,402]]],
+ ['factory','teagarden','path',[[910,345],[872,322],[812,312],[805,295]]],
+ ['teahouse','ridge','trail',[[500,340],[452,322],[488,285],[432,258],[452,226],[410,212]]],
+ ['ridge','gompa','trail',[[345,205],[285,222],[215,214],[180,212]]],
+ ['ridge','peak','trail',[[455,178],[500,168],[540,150]]],
+ ['gompa','school','trail',[[160,232],[190,262],[228,300],[250,335]]],
+ ['school','market','path',[[300,392],[352,432],[392,470]]],
+ ['market','mill','path',[[365,512],[285,500],[222,522]]],
+ ['market','h_gurung','path',[[392,540],[340,578]]],
+ ['bus','health','path',[[565,632],[612,598]]],
+ ['lodge','health','path',[[705,478],[668,515]]],
+ ['health','h_rai','path',[[722,572],[790,600]]]
+];
+function spline(P){const out=[];for(let i=0;i<P.length-1;i++){const p0=P[i-1]||P[i],p1=P[i],p2=P[i+1],p3=P[i+2]||P[i+1];
+  const n=Math.max(3,Math.ceil(Math.hypot(p2.x-p1.x,p2.y-p1.y)/6));
+  for(let k=0;k<n;k++){const t=k/n,t2=t*t,t3=t2*t,f=(a,b,c,d)=>.5*(2*b+(-a+c)*t+(2*a-5*b+4*c-d)*t2+(-a+3*b-3*c+d)*t3);out.push({x:f(p0.x,p1.x,p2.x,p3.x),y:f(p0.y,p1.y,p2.y,p3.y)})}}
+  out.push({x:P[P.length-1].x,y:P[P.length-1].y});return out}
+for(const r of ROADS){r.pts=spline([NODE[r[0]],...r[3].map(p=>({x:p[0],y:p[1]})),NODE[r[1]]]);let L=0;for(let i=1;i<r.pts.length;i++)L+=Math.hypot(r.pts[i].x-r.pts[i-1].x,r.pts[i].y-r.pts[i-1].y);r.len=L}
+const RIVER=(()=>{const segs=[[[250,125],[220,250],[70,330],[105,470]],[[105,470],[130,560],[60,620],[90,690]]],o=[];
+  for(const s of segs)for(let i=0;i<=40;i++){const t=i/40,u=1-t;o.push({x:u*u*u*s[0][0]+3*u*u*t*s[1][0]+3*u*t*t*s[2][0]+t*t*t*s[3][0],y:u*u*u*s[0][1]+3*u*u*t*s[1][1]+3*u*t*t*s[2][1]+t*t*t*s[3][1]})}return o})();
+
 
 /* activities: abbr for map bubble, importance when started, sub-steps [sub-area index, text] */
 const ACT={
@@ -370,6 +415,7 @@ function kwFromText(s){const k=new Set();for(const a of P){if(s.includes(a.name)
   if(/參選|村代表|選舉|競選|投票/.test(s))k.add('election');
   for(const id in LOC)if(s.includes(LOC[id].name)||s.includes(LOC[id].name.replace(/^.{2}/,'')))k.add(id);
   if(/茶園|茶樹|採茶|製茶/.test(s))k.add('tea');
+  if(/今天|明天|早上|中午|下午|晚上|幾點|計畫|日程/.test(s))k.add('plan');
   return k}
 
 /* ============ State ============ */
@@ -417,7 +463,8 @@ function makeDayPlan(a,day,t){
   if(day===2&&a.party==='yes')b=insertBlock(b,{start:17,end:19,loc:'teahouse',act:'party',desc:'參加卓瑪的燈節茶會',added:true});
   a.plan=b;a.planDay=day;
   const outline=b.map(x=>`${hh(x.start)} ${x.desc}`).join('；');
-  remember(a,'plan',`第${day}天的計畫：${outline}；${hh(a.sleep)} 睡覺`,3,[a.id,...(b.some(x=>x.act==='party')?['party']:[])],t);
+  remember(a,'plan',`第${day}天的計畫：${outline}；${hh(a.sleep)} 睡覺`,3,[a.id,'plan',...(b.some(x=>x.act==='party')?['party']:[])],t);
+  summaryLocal(a,t);
 }
 function conflictAt(a,day,h){const b=routineFor(a,day).find(x=>h>=x.start&&h<x.end);return b&&WORK.has(b.act)?b:null}
 function decompose(a,b,t){
@@ -643,8 +690,8 @@ function drawBackground(b){
   for(let i=0;i<14;i++){const y0=165+i*13;b.beginPath();b.moveTo(700,y0+18);b.quadraticCurveTo(840,y0-6,990,y0+14);b.strokeStyle=i%2?'#3f6f3a':'#557f45';b.lineWidth=6;b.setLineDash([4,3]);b.lineCap='round';b.stroke()}
   b.setLineDash([]);
   b.lineCap='round';b.beginPath();b.moveTo(250,125);b.bezierCurveTo(220,250,70,330,105,470);b.bezierCurveTo(130,560,60,620,90,690);b.strokeStyle='#5f93b8';b.lineWidth=18;b.stroke();b.strokeStyle='#9cc7e1';b.lineWidth=6;b.stroke();
-  for(const[u,v]of ROADS){const p=LOC[u],q=LOC[v];b.beginPath();b.moveTo(p.x,p.y+14);b.lineTo(q.x,q.y+14);b.strokeStyle='#bba577';b.lineWidth=8;b.stroke();b.strokeStyle='#dccda4';b.lineWidth=3.5;b.stroke()}
-  for(let i=0;i<40;i++){const x=r()*1000,y=170+r()*500;let ok=true;for(const id in LOC){if(Math.hypot(LOC[id].x-x,LOC[id].y-y)<70)ok=false}if(x>680&&y<320)ok=false;if(!ok)continue;b.fillStyle='#2f5a36';b.beginPath();b.moveTo(x,y-14);b.lineTo(x+7,y+4);b.lineTo(x-7,y+4);b.closePath();b.fill();b.fillStyle='#5a3d22';b.fillRect(x-1,y+4,2,4)}
+  drawRoads(b);
+  for(let i=0;i<70;i++){const x=r()*1000,y=170+r()*500;let ok=true;for(const id in LOC){if(Math.hypot(LOC[id].x-x,LOC[id].y-y)<70)ok=false}if(x>680&&y<320)ok=false;for(const rd of ROADS)for(const q of rd.pts)if(Math.hypot(q.x-x,q.y-y)<22)ok=false;for(const q of RIVER)if(Math.hypot(q.x-x,q.y-y)<18)ok=false;if(Math.hypot(x-420,y-490)<95)ok=false;if(!ok)continue;b.fillStyle='#2f5a36';b.beginPath();b.moveTo(x,y-14);b.lineTo(x+7,y+4);b.lineTo(x-7,y+4);b.closePath();b.fill();b.fillStyle='#5a3d22';b.fillRect(x-1,y+4,2,4)}
   for(const id in LOC)drawBuilding(b,id,LOC[id]);
   b.font='600 12.5px "Noto Sans TC",sans-serif';b.textAlign='center';
   for(const id in LOC){const L=LOC[id];const ty=L.y-(L.kind==='gompa'?46:L.kind==='ridge'?30:36);b.lineWidth=4;b.strokeStyle='rgba(255,255,255,.88)';b.strokeText(L.name,L.x,ty);b.fillStyle='#1c2330';b.fillText(L.name,L.x,ty)}
@@ -665,32 +712,63 @@ function drawBuilding(b,id,L){const x=L.x,y=L.y-6;
     case'mill':house(b,x,y,48,30,'#e9dfcb','#5b5f66');b.strokeStyle='#6a4a2a';b.lineWidth=3;b.beginPath();b.arc(x-38,y+4,13,0,7);b.stroke();for(let j=0;j<6;j++){const an=j*Math.PI/3;b.beginPath();b.moveTo(x-38,y+4);b.lineTo(x-38+Math.cos(an)*13,y+4+Math.sin(an)*13);b.lineWidth=1.5;b.stroke()}break;
     default:house(b,x,y,44,28,'#e9e0cf','#56606e');
   }}
+function strokePts(b,pts){b.beginPath();b.moveTo(pts[0].x,pts[0].y);for(let i=1;i<pts.length;i++)b.lineTo(pts[i].x,pts[i].y);b.stroke()}
+function offsetPts(pts,d){return pts.map((p,i)=>{const a=pts[Math.max(0,i-1)],c=pts[Math.min(pts.length-1,i+1)];const dx=c.x-a.x,dy=c.y-a.y,l=Math.hypot(dx,dy)||1;return{x:p.x-dy/l*d,y:p.y+dx/l*d}})}
+function drawRoads(b){
+  const r=mulberry(11);b.lineCap='round';b.lineJoin='round';
+  b.fillStyle='#cdbb8f';b.beginPath();b.ellipse(420,490,82,36,-.05,0,7);b.fill();
+  for(let i=0;i<70;i++){const an=r()*7,rr=Math.sqrt(r());b.fillStyle=r()<.5?'rgba(110,90,55,.18)':'rgba(255,250,230,.25)';b.fillRect(420+Math.cos(an)*78*rr,490+Math.sin(an)*32*rr,2,2)}
+  const ST={trail:[['rgba(40,60,30,.16)',10],['#a0927a',6.5]],path:[['rgba(40,60,30,.18)',12],['#a8946a',8.5],['#d8c9a2',5.5]],main:[['rgba(40,60,30,.22)',21],['#9c865b',16],['#cbb68a',12]]};
+  for(const type of ['trail','path','main'])for(const rd of ROADS.filter(x=>x[2]===type)){
+    for(const[c,w]of ST[type]){b.strokeStyle=c;b.lineWidth=w;strokePts(b,rd.pts)}
+    if(type==='main'){b.strokeStyle='rgba(125,100,60,.45)';b.lineWidth=1.3;strokePts(b,offsetPts(rd.pts,3));strokePts(b,offsetPts(rd.pts,-3));
+      for(const p of rd.pts)if(r()<.35){const q=offsetPts([p,p],0)[0];b.fillStyle='rgba(120,110,95,.55)';b.beginPath();b.arc(p.x+(r()-.5)*22,p.y+(r()-.5)*22,1+r()*1.2,0,7);b.fill()}}
+    if(type==='trail'){b.strokeStyle='#e4dac1';b.lineWidth=4.5;b.setLineDash([2.5,3.5]);strokePts(b,rd.pts);b.setLineDash([])}
+  }
+  for(const rd of ROADS){if(rd[2]==='main')continue;let best=null,bd=10;
+    rd.pts.forEach((p,i)=>{for(const q of RIVER){const d=Math.hypot(p.x-q.x,p.y-q.y);if(d<bd){bd=d;best=i}}});
+    if(best===null)continue;const p=rd.pts[best],a=rd.pts[Math.max(0,best-3)],c=rd.pts[Math.min(rd.pts.length-1,best+3)];
+    b.save();b.translate(p.x,p.y);b.rotate(Math.atan2(c.y-a.y,c.x-a.x));
+    b.fillStyle='rgba(0,0,0,.18)';b.fillRect(-19,-2,38,8);
+    b.fillStyle='#8a6a44';b.fillRect(-19,-4,38,8);b.strokeStyle='#6a4e30';b.lineWidth=.8;for(let x=-17;x<=17;x+=3.4){b.beginPath();b.moveTo(x,-4);b.lineTo(x,4);b.stroke()}
+    b.strokeStyle='#4a4038';b.lineWidth=1.2;for(const s of[-1,1]){b.beginPath();b.moveTo(-20,s*6);b.quadraticCurveTo(0,s*6+(s>0?3:-1),20,s*6);b.stroke();b.fillStyle='#5a4a3a';b.fillRect(-21,s*6-2,3,4);b.fillRect(18,s*6-2,3,4)}
+    const cols=['#2a64b0','#f5f5f5','#c7312e','#2f8a45','#e2b52a'];for(let j=0;j<7;j++){b.fillStyle=cols[j%5];b.fillRect(-16+j*5,-10+Math.sin((j+.5)/7*Math.PI)*.8,3.5,4)}
+    b.restore()}
+}
 function nightAlpha(t){const h=(t%DAY)/60;if(h>=6.5&&h<17.5)return 0;if(h>=17.5&&h<20)return (h-17.5)/2.5*.5;if(h>=20||h<5)return .5;if(h>=5&&h<6.5)return .5*(1-(h-5)/1.5);return 0}
 
 /* ============ Walking along the roads at a human pace ============ */
-const GRAPH={};for(const[u,v]of ROADS){(GRAPH[u]=GRAPH[u]||[]).push(v);(GRAPH[v]=GRAPH[v]||[]).push(u)}
-const RP=id=>({x:LOC[id].x,y:LOC[id].y+14});
+const GRAPH={};for(const r of ROADS){(GRAPH[r[0]]=GRAPH[r[0]]||[]).push(r);(GRAPH[r[1]]=GRAPH[r[1]]||[]).push(r)}
 const PACE={maya:.8,kesang:.85,pasang:.92,nima:1.12,bikash:1.1};
 let curTps=1;
-function route(from,to){const dist={},prev={},Q=new Set(Object.keys(LOC));for(const k of Q)dist[k]=Infinity;dist[from]=0;
-  while(Q.size){let u=null;for(const k of Q)if(u===null||dist[k]<dist[u])u=k;Q.delete(u);if(u===to)break;
-    for(const v of GRAPH[u]||[]){const d=dist[u]+Math.hypot(LOC[u].x-LOC[v].x,LOC[u].y-LOC[v].y);if(d<dist[v]){dist[v]=d;prev[v]=u}}}
-  const out=[];let c=to;while(c){out.unshift(c);c=prev[c]}return out[0]===from?out:[to]}
-function nearestNode(x,y){let b=null,bd=Infinity;for(const id in LOC){const p=RP(id),d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;b=id}}return b}
+function route(from,to){
+  const dist={},prev={},Q=new Set(Object.keys(NODE));for(const k of Q)dist[k]=Infinity;dist[from]=0;
+  while(Q.size){let u=null;for(const k of Q)if(u===null||dist[k]<dist[u])u=k;if(dist[u]===Infinity)break;Q.delete(u);if(u===to)break;
+    for(const r of GRAPH[u]||[]){const v=r[0]===u?r[1]:r[0];const d=dist[u]+r.len;if(d<dist[v]){dist[v]=d;prev[v]={u,r}}}}
+  if(dist[to]===Infinity)return[{...NODE[to],node:to}];
+  const edges=[];let c=to;while(c!==from){edges.unshift(prev[c]);c=prev[c].u}
+  const out=[{...NODE[from],node:from}];
+  for(const{u,r}of edges){const pts=r[0]===u?r.pts:[...r.pts].reverse();for(let i=1;i<pts.length;i++)out.push({x:pts[i].x,y:pts[i].y})}
+  if(edges.length){let n=to;out[out.length-1].node=n}
+  return out}
+function nearestNode(x,y){let b=null,bd=Infinity;for(const id in NODE){const p=NODE[id],d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;b=id}}return b}
 function walk(a,dt){
   if(a.pathLoc!==a.loc){
-    const from=a.pathLoc&&Math.hypot(a.x-RP(a.pathLoc).x,a.y-RP(a.pathLoc).y)<90&&!a.path.length?a.pathLoc:nearestNode(a.x,a.y);
-    a.path=route(from,a.loc).map(RP);a.pathLoc=a.loc}
-  const goal=a.path.length?a.path[0]:slot(a);
-  const dx=goal.x-a.x,dy=goal.y-a.y,d=Math.hypot(dx,dy);
-  if(d<1.2){if(a.path.length){a.path.shift();return}a.v=0;a.ph=0;return}
-  const vmax=58*Math.sqrt(Math.max(1,curTps))*(PACE[a.id]||1);
-  const want=a.path.length>0?vmax:Math.min(vmax,4+d*2.2);
+    let keep=[],from=a.pathLoc||a.home;const idx=a.path.findIndex(p=>p.node);
+    if(idx>=0){keep=a.path.slice(0,idx+1);from=a.path[idx].node}
+    else if(Math.hypot(a.x-NODE[from].x,a.y-NODE[from].y)>120)from=nearestNode(a.x,a.y);
+    const r=route(from,a.loc);a.path=keep.length?keep.concat(r.slice(1)):r;a.pathLoc=a.loc}
+  const pace=PACE[a.id]||1,vmax=58*Math.sqrt(Math.max(1,curTps))*pace;
+  const s=slot(a),ds=Math.hypot(s.x-a.x,s.y-a.y);
+  const want=a.path.length?vmax:Math.min(vmax,ds<.6?0:4+ds*2.2);
   a.v=(a.v||0)+(want-(a.v||0))*Math.min(1,dt*4);
-  const mv=Math.min(d,a.v*dt);
-  a.x+=dx/d*mv;a.y+=dy/d*mv;
-  a.ph=(a.ph||0)+mv*(0.3/(PACE[a.id]||1));
-  if(Math.abs(dx)>.4)a.face=dx<0?-1:1;
+  let budget=a.v*dt,moved=0;
+  for(let guard=0;budget>1e-3&&guard<200;guard++){const goal=a.path.length?a.path[0]:s;const dx=goal.x-a.x,dy=goal.y-a.y,d=Math.hypot(dx,dy);
+    if(d>.3&&Math.abs(dx)>.25*d)a.face=dx<0?-1:1;
+    if(d<=budget){a.x=goal.x;a.y=goal.y;budget-=d;moved+=d;if(a.path.length)a.path.shift();else break}
+    else{a.x+=dx/d*budget;a.y+=dy/d*budget;moved+=budget;budget=0}}
+  if(!a.path.length&&ds<.6)a.v=0;
+  a.ph=moved>.02?(a.ph||0)+moved*(0.3/pace):0;
 }
 /* ============ Characters: hand-drawn figures ============ */
 const LOOK={
@@ -809,7 +887,7 @@ function phase(t){const h=(t%DAY)/60;return h<9?'清晨':h<12?'上午':h<14?'中
 function renderClock(){$('#cDay').textContent=`第${dayOf(S.t)}天`;$('#cTime').textContent=hm(S.t);$('#cPhase').textContent=phase(S.t)}
 function renderLegend(){$('#legend').innerHTML=A.map(a=>`<button class="chip" data-id="${a.id}" aria-pressed="${a.id===S.sel}"><img src="${PORTRAIT[a.id]}" alt="" style="border-color:${a.color}">${esc(a.name)}</button>`).join('')}
 $('#legend').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b){select(b.dataset.id);showTab('agent')}});
-function select(id){S.sel=id;$('#retOut').innerHTML='';$('#qMem').value='';renderLegend();renderAgentStatic();renderAgent();renderIV()}
+function select(id){S.sel=id;$('#retOut').innerHTML='';$('#qMem').value='';renderLegend();renderAgentStatic();renderAgent();renderIV();renderIVQ();renderRun();renderSummary()}
 function renderAgentStatic(){const a=AG[S.sel];
   $('#aAv').style.background=`center/cover url(${PORTRAIT[a.id]})`;$('#aAv').style.borderColor=a.color;$('#aAv').textContent='';$('#aName').textContent=a.full;$('#aMeta').textContent=`${a.age} 歲 · ${a.job}`;
   $('#aPersona').innerHTML=`<p class="persona">${esc(a.persona.replace(/；/g,'；'))}</p><h3 style="margin-top:10px">拆成種子記憶</h3><ol class="seedlist">${a.persona.split('；').map(s=>`<li>${esc(s)}</li>`).join('')}</ol>`;
@@ -833,33 +911,105 @@ function renderRet(list){$('#retOut').innerHTML=`<li class="note" style="border:
 $('#btnRet').onclick=()=>{const q=$('#qMem').value.trim();if(!q)return;renderRet(retrieve(AG[S.sel],{text:q,kw:kwFromText(q)},8,S.t))};
 $('#qMem').addEventListener('keydown',e=>{if(e.key==='Enter')$('#btnRet').click()});
 
-/* interview */
-let ivCtl=null;
-function renderIV(){const a=AG[S.sel];$('#ivLog').innerHTML=a.iv.map(x=>`<div class="q">${esc(x.q)}</div><div class="a">${esc(x.a||'思考中…')}<small>${x.mode==='local'?'本機模式 · ':''}檢索到的記憶：${x.ret.map(r=>'#'+r.m.id).join(' ')}${x.err?' · '+esc(x.err):''}</small></div>`).join('');const l=$('#ivLog');l.scrollTop=l.scrollHeight}
-async function ask(q){
-  const a=AG[S.sel];q=q.trim();if(!q||ivCtl)return;
-  const ret=retrieve(a,{text:q,kw:kwFromText(q)},8,S.t);
-  const item={q,a:'',ret};a.iv.push(item);$('#ivQ').value='';
-  if(!sample){item.mode='local';item.a='我記得：\n'+ret.slice(0,4).map(r=>'・'+r.m.text).join('\n');renderIV();return}
-  renderIV();
-  const hist=a.iv.slice(-5,-1).map(x=>`訪談者：${x.q}\n${a.name}：${x.a}`).join('\n');
-  const prompt=`你正在扮演「貝瑪崗」小鎮模擬中的居民${a.full}。貝瑪崗是喜馬拉雅山腳的虛構小鎮，這個模擬仿照〈Generative Agents〉論文。
-你的人設：${a.persona}
+/* ============ Appendix A: cached agent summary description ============ */
+const SUMQ=[['core','的核心特徵','根據以下陳述，人們會如何描述{n}的核心特徵？'],['job','目前的日常工作','根據以下陳述，{n}目前的日常工作是什麼？'],['feel','對近期生活進展的感受','根據以下陳述，{n}對自己近期生活進展的感受是什麼？']];
+function summaryLocal(a,t){
+  const main=a.routine.filter(r=>WORK.has(r[3])||['serve','campaign','guidetrain','sell','research'].includes(r[3])).map(r=>r[4]);
+  const refl=a.mem.filter(m=>m.type==='reflection').slice(-1)[0];
+  const parts={core:`${a.full}${a.short}。${a.persona.split('；')[1]||''}`,job:`${a.full}是${a.job}，平常${[...new Set(main)].slice(0,3).join('、')||a.routine[1][4]}。`,feel:refl?refl.text:`${a.name}覺得生活照常，專心在${a.job}的工作上。`};
+  a.summary={parts,t,by:'local',text:`姓名：${a.full}（${a.age} 歲）\n特質：${a.short}\n${parts.core}\n${parts.job}\n${parts.feel}`}}
+async function summaryClaude(a){
+  const t=S.t;
+  const res=await Promise.all(SUMQ.map(([k,label,q])=>{const r=retrieve(a,{text:a.name+label,kw:[a.id]},10,t);
+    return sample(`${q.replace('{n}',a.full)}\n\n${r.map(x=>x.m.text).join('\n')}\n\n用台灣繁體中文，一到兩句話回答，只根據上面的陳述。`,{modelTier:'quick',cache:false}).then(x=>[k,x.text.trim()])}));
+  const parts=Object.fromEntries(res);
+  a.summary={parts,t,by:'claude',text:`姓名：${a.full}（${a.age} 歲）\n特質：${a.short}\n${parts.core}\n${parts.job}\n${parts.feel}`}}
+
+/* ============ Appendix B: 25 interview questions ============ */
+function partners(a){const c={};for(const m of a.mem)if(m.type==='chat')for(const k of m.kw)if(AG[k]&&k!==a.id)c[k]=(c[k]||0)+1;
+  const s=Object.entries(c).sort((x,y)=>y[1]-x[1]).map(e=>e[0]);
+  const acq=[...a.acq].filter(x=>!s.includes(x));return s.concat(acq)}
+function ivQuestions(a){const p=partners(a),top=AG[p[0]]?AG[p[0]].name:'卓瑪',r1=AG[p[1]]?AG[p[1]].name:top,r2=AG[p[2]]?AG[p[2]].name:r1;
+  return [
+   ['自我認知','探討居民檢索自身資訊、維持角色一致的能力',['請介紹一下你自己。','你的職業是什麼？','你的興趣是什麼？','你和誰住在一起？','請粗略描述你典型的工作日日程。']],
+   ['記憶','探討居民記住過去經歷、檢索相關記憶的能力',[`${r1}是誰？`,'丹增·多吉是誰？','誰要參選村代表？','鎮上有要辦燈節茶會嗎？',`${r2}是誰？`]],
+   ['計畫','探討居民產生並維持一致計畫的能力',['你今天早上 6 點會在做什麼？','你今天下午 6 點會在做什麼？','你今天下午 1 點會剛完成什麼事？','你今天中午 12 點會剛完成什麼事？','你今天晚上 10 點會在做什麼？']],
+   ['反應','探討居民應對突發事件的能力',['你的早餐燒焦了！你會怎麼做？','家裡的廁所有人在用。你會怎麼做？','你需要煮晚餐，但家裡的食材都用完了。你會怎麼做？','你看見你的朋友走在路上。你會對你的朋友做什麼或說什麼？','你看見路上有房子失火了。你會怎麼做？']],
+   ['反思','探討居民把經驗綜合成有意義反思的能力',['目前生活中最能啟發你的是什麼，為什麼？',`根據你對${top}的了解，如果讓你猜，你覺得${top}會喜歡什麼書，為什麼？`,`如果你要送${top}一份生日禮物，你會送什麼？`,`你會對${top}說什麼來讚美對方？`,'如果你可以和最近交流過的人共度時光，會是誰，為什麼？']]
+  ]}
+function renderIVQ(){const a=AG[S.sel];$('#ivCats').innerHTML=ivQuestions(a).map(([c,d,qs])=>`<div class="ivcat"><h3>${esc(c)}</h3><p class="note" style="margin:0 0 4px">${esc(d)}</p><div class="presets">${qs.map(q=>`<button data-q="${esc(q)}">${esc(q)}</button>`).join('')}</div></div>`).join('')}
+
+/* answering */
+function planAt(a,h){return a.plan.find(b=>h>=b.start&&h<b.end)}
+function localAnswer(a,q,ret){
+  const m=q.match(/(早上|上午|中午|下午|晚上)\s*(\d{1,2})\s*點/);
+  if(m){let h=+m[2];if((m[1]==='下午'||m[1]==='晚上')&&h<12)h+=12;
+    if(/剛完成/.test(q)){const b=a.plan.filter(x=>x.end<=h+.01).slice(-1)[0];return b?`${hh(h)}的時候，我應該剛結束「${b.desc}」。`:'那時候我應該才剛起床。'}
+    if(h>=a.sleep||h<6)return `${hh(h)}的時候我應該已經在${LOC[a.home].name}睡了。`;
+    const b=planAt(a,h);return b?`${hh(h)}的時候，我應該在${LOC[b.loc].name}，${b.desc}。`:'那時候我還沒有特別的安排。'}
+  if(/介紹.*自己/.test(q))return `我是${a.full}，今年 ${a.age} 歲，是${a.job}。大家都說我${a.short.replace(/[她他]/g,'我')}。`;
+  const who=q.match(/^(.+?)是誰/);if(who&&!A.some(o=>who[1].includes(o.name)||(o.alias&&who[1].includes(o.alias)))&&!Object.values(LOC).some(L=>who[1].includes(L.name)))return `${who[1]}？抱歉，我不認識這個人。`;
+  if(/住在一起|和誰住|跟誰住/.test(q)){const w=A.filter(o=>o!==a&&o.home===a.home);return w.length?`我和${w.map(o=>o.name).join('、')}一起住在${LOC[a.home].name}。`:`我一個人住在${LOC[a.home].name}。`}
+  if(/職業|工作是什麼/.test(q))return a.summary.parts.job;
+  if(/典型|日程/.test(q))return a.plan.map(b=>`${hh(b.start)} ${b.desc}`).join('，')+'。';
+  const best=ret.filter(r=>r.rel>.18).slice(0,3);
+  if(!best.length)return '（本機模式只能列出相關記憶，這題找不到相關的記憶；需要 Claude 才能以角色的身分推理回答。）';
+  return '我記得：\n'+best.map(r=>'・'+r.m.text).join('\n')}
+function ivPrompt(a,q,ret,hist){return `你正在扮演「貝瑪崗」小鎮模擬中的居民${a.full}。貝瑪崗是喜馬拉雅山腳的虛構小鎮，這個模擬仿照〈Generative Agents〉論文。
+你的摘要描述（快取）：
+${a.summary.text}
 現在時間：${stamp(S.t)}。你在${LOC[a.loc].name}，正在${a.cur.desc}。
-今天的計畫：${a.plan.map(b=>hh(b.start)+' '+b.desc).join('；')}
+今天的計畫：${a.plan.map(b=>hh(b.start)+'–'+hh(b.end)+' '+b.desc).join('；')}；${hh(a.sleep)} 睡覺
 從你的記憶流中檢索到、與問題最相關的記憶（依檢索分數排序，#後是記憶編號）：
 ${memLines(ret)}
-${hist?'先前的訪談內容：\n'+hist+'\n':''}規則：用第一人稱、台灣繁體中文口語回答，2 到 5 句。只根據人設和上面的記憶回答；記憶裡沒有的事，就說不知道或不記得，不要編造。保持角色的個性和說話習慣。
-訪談者問：${q}`;
+${hist?'先前的訪談內容：\n'+hist+'\n':''}規則：用第一人稱、台灣繁體中文口語回答，2 到 5 句。只根據摘要、計畫和上面的記憶回答；記憶裡沒有的人或事，就說不知道或不記得，不要編造。保持角色的個性和說話習慣。
+訪談者問：${q}`}
+async function answer(a,q,opts){
+  const ret=retrieve(a,{text:q,kw:kwFromText(q)},8,S.t);
+  if(!sample)return{text:localAnswer(a,q,ret),ret,mode:'local'};
+  try{const r=await sample(ivPrompt(a,q,ret,opts.hist||''),{cache:false,signal:opts.signal,modelTier:opts.tier,onText:opts.onText?({text})=>opts.onText(text,ret):undefined});return{text:r.text,ret,mode:'claude'}}
+  catch(e){if(e.code==='cancelled')throw e;disableClaude(e);return{text:e.text||localAnswer(a,q,ret),ret,mode:e.text?'claude':'local',err:errCopy(e)}}}
+
+/* free-form interview */
+let ivCtl=null;
+function renderIV(){const a=AG[S.sel];$('#ivLog').innerHTML=a.iv.map(x=>`<div class="q">${esc(x.q)}</div><div class="a">${esc(x.a||'思考中…')}<small>${x.mode==='local'?'本機模式 · ':''}檢索到的記憶：${(x.ret||[]).map(r=>'#'+r.m.id).join(' ')}${x.err?' · '+esc(x.err):''}</small></div>`).join('');const l=$('#ivLog');l.scrollTop=l.scrollHeight}
+async function ask(q){
+  const a=AG[S.sel];q=q.trim();if(!q||ivCtl||runCtl)return;
+  const item={q,a:'',ret:[]};a.iv.push(item);$('#ivQ').value='';renderIV();
+  const hist=a.iv.slice(-5,-1).map(x=>`訪談者：${x.q}\n${a.name}：${x.a}`).join('\n');
   ivCtl=new AbortController();$('#btnStop').classList.remove('hidden');$('#btnAsk').disabled=true;
-  try{await sample(prompt,{cache:false,signal:ivCtl.signal,onText:({text})=>{item.a=text;renderIV()}})}
-  catch(e){item.a=e.text||item.a;if(e.code!=='cancelled'){item.err=errCopy(e);disableClaude(e);if(!sample&&!item.a){item.mode='local';item.a='我記得：\n'+ret.slice(0,4).map(r=>'・'+r.m.text).join('\n')}}}
+  try{const r=await answer(a,q,{hist,signal:ivCtl.signal,onText:(t,ret)=>{item.a=t;item.ret=ret;renderIV()}});Object.assign(item,{a:r.text,ret:r.ret,mode:r.mode,err:r.err})}
+  catch(e){item.a=e.text||item.a||'（已停止）'}
   finally{ivCtl=null;$('#btnStop').classList.add('hidden');$('#btnAsk').disabled=false;renderIV()}
 }
 $('#btnAsk').onclick=()=>ask($('#ivQ').value);
 $('#ivQ').addEventListener('keydown',e=>{if(e.key==='Enter')ask($('#ivQ').value)});
 $('#btnStop').onclick=()=>ivCtl&&ivCtl.abort();
 $('#presets').addEventListener('click',e=>{const b=e.target.closest('button');if(b)ask(b.textContent)});
+$('#ivCats').addEventListener('click',e=>{const b=e.target.closest('button');if(b)ask(b.dataset.q)});
+
+/* full 25-question run */
+let runCtl=null;
+function renderRun(){const a=AG[S.sel],R=a.run;const box=$('#runOut');
+  if(!R){box.innerHTML='';return}
+  box.innerHTML=`<p class="eyebrow">訪談時間：${stamp(R.t)}${R.done?'':' · 進行中 '+R.items.filter(x=>x.a).length+'/25'}${R.local?' · 本機模式':''}</p>`+
+   R.cats.map(([c,,qs],ci)=>`<h3 style="margin-top:10px">${esc(c)}</h3>`+qs.map((q,qi)=>{const it=R.items[ci*5+qi];return `<div class="runqa"><b>${ci*5+qi+1}. ${esc(q)}</b><p>${esc(it.a||'…')}</p><span class="note">檢索到的記憶：${(it.ret||[]).slice(0,5).map(r=>'#'+r.m.id).join(' ')||'—'}</span></div>`}).join('')).join('')}
+$('#btnRun').onclick=async()=>{
+  const a=AG[S.sel];if(runCtl||ivCtl)return;
+  const cats=ivQuestions(a);const R={t:S.t,cats,items:cats.flatMap(c=>c[2].map(q=>({q,a:''}))),done:false,local:!sample};a.run=R;renderRun();
+  runCtl=new AbortController();$('#btnRun').disabled=true;$('#btnRunStop').classList.remove('hidden');
+  try{for(const it of R.items){if(S.sel!==a.id)renderRun();const r=await answer(a,it.q,{tier:'quick',signal:runCtl.signal});Object.assign(it,{a:r.text,ret:r.ret});if(r.mode==='local')R.local=true;if(S.sel===a.id)renderRun()}
+    R.done=true;addLog({t:S.t,type:'refl',who:[a.id],text:`完成對${a.name}的 25 題結構化訪談（論文附錄 B）。`})}
+  catch(e){R.done=true;R.items.forEach(x=>{if(!x.a)x.a='（已停止）'})}
+  finally{runCtl=null;$('#btnRun').disabled=false;$('#btnRunStop').classList.add('hidden');if(S.sel===a.id)renderRun()}};
+$('#btnRunStop').onclick=()=>runCtl&&runCtl.abort();
+
+/* summary UI */
+function renderSummary(){const a=AG[S.sel];$('#sumText').textContent=a.summary.text;$('#sumMeta').textContent=`${a.summary.by==='claude'?'由 Claude 整理':'本機整理'} · 更新於 ${stamp(a.summary.t)}`;$('#btnSum').classList.toggle('hidden',!sample)}
+$('#btnSum').onclick=async()=>{const a=AG[S.sel],b=$('#btnSum');b.disabled=true;$('#sumMeta').textContent='Claude 正在整理三個查詢的結果…';
+  try{await summaryClaude(a)}catch(e){disableClaude(e);$('#sumMeta').textContent=errCopy(e);b.disabled=false;return}
+  b.disabled=false;renderSummary()};
+
 
 /* inner voice & reflection */
 $('#btnInner').onclick=()=>{const a=AG[S.sel],s=$('#inner').value.trim();if(!s)return;const k=kwFromText(s);
@@ -918,7 +1068,7 @@ function renderTree(){$('#tree').textContent='貝瑪崗\n'+Object.entries(LOC).m
 function setStatus(s){$('#status').textContent=s}
 $('#btnPlay').onclick=()=>{if(S.done)return;S.running=!S.running;$('#btnPlay').textContent=S.running?'暫停':'播放';setStatus(S.running?'模擬進行中。':'已暫停。')};
 $('#btnStep').onclick=()=>{if(!S.busy)tick()};
-$('#btnReset').onclick=()=>{if(ivCtl)ivCtl.abort();const sel=S.sel,uc=S.useClaude;init();S.sel=sel;S.useClaude=uc;$('#btnPlay').disabled=false;$('#btnStep').disabled=false;$('#btnPlay').textContent='播放';setStatus('已重新開始。');select(sel)};
+$('#btnReset').onclick=()=>{if(ivCtl)ivCtl.abort();if(runCtl)runCtl.abort();const sel=S.sel,uc=S.useClaude;init();S.sel=sel;S.useClaude=uc;$('#btnPlay').disabled=false;$('#btnStep').disabled=false;$('#btnPlay').textContent='播放';setStatus('已重新開始。');select(sel)};
 $('#useClaude').onchange=e=>{S.useClaude=e.target.checked;setStatus(S.useClaude?'之後的每段對話都會交給 Claude 撰寫，生成時模擬會暫停。':'對話改回本機範本。')};
 let acc=0,prev=performance.now();
 function loop(now){const dt=Math.min(.1,(now-prev)/1000);prev=now;if(!S.running||S.done)curTps=1;
@@ -928,7 +1078,7 @@ function loop(now){const dt=Math.min(.1,(now-prev)/1000);prev=now;if(!S.running|
   if(logDirty&&tab==='log'){renderLog();logDirty=false}
   requestAnimationFrame(loop)}
 
-init();setupCanvas();renderLegend();renderAgentStatic();renderAgent();renderIV();renderTree();
+init();setupCanvas();renderLegend();renderAgentStatic();renderAgent();renderIV();renderIVQ();renderRun();renderSummary();renderTree();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>setupCanvas());
 requestAnimationFrame(loop);
 })();
