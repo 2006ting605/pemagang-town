@@ -40,10 +40,48 @@ button:focus-visible,select:focus-visible,input:focus-visible,textarea:focus-vis
 button.primary{background:var(--ink);color:var(--bg);border-color:var(--ink);min-width:5.5em}
 button:disabled{opacity:.5;cursor:default}
 label.tog{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--muted);cursor:pointer}
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px 24px;padding-bottom:4px}
+.kicker{font-family:var(--mono);font-size:11.5px;letter-spacing:.12em;color:var(--muted);margin:0 0 6px}
+.brand h1{font-family:var(--display);font-weight:900;font-size:clamp(26px,3.6vw,38px);line-height:1.15;margin:0;letter-spacing:.03em;text-wrap:balance}
+.brand p{margin:6px 0 0;color:var(--muted);font-size:13px}
+.daybadge{display:flex;flex-direction:column;align-items:flex-end;font-family:var(--mono);line-height:1}
+.daybadge span{font-size:12px;letter-spacing:.2em;color:var(--muted)}
+.daybadge b{font-size:44px;font-weight:600;font-variant-numeric:tabular-nums}
+.stage{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:16px;align-items:start}
+@media (max-width:1100px){.stage{grid-template-columns:minmax(0,1fr)}}
+.infobar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.infobar .wicon{display:inline-grid;place-items:center;width:28px;height:28px}
+.infobar .h{font-family:var(--mono);font-size:28px;font-weight:600;font-variant-numeric:tabular-nums;line-height:1}
+.infobar .wx{font-weight:700;font-size:14px}
+.infobar .sep{width:1px;height:20px;background:var(--line)}
+.infobar .date,.infobar .ph{font-size:13px;color:var(--muted)}
+.infobar .controls{margin-left:auto}
+.infobar button.primary{background:var(--green);border-color:var(--green);color:#fff}
+.roster{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px;max-height:calc(100vh - 40px);overflow-y:auto;position:sticky;top:12px}
+.rh{font-family:var(--body);font-size:15px;margin:0 0 10px;letter-spacing:.06em}
+#roster{display:grid;gap:8px;grid-template-columns:minmax(0,1fr)}
+@media (max-width:1100px){.roster{position:static;max-height:none}#roster{grid-template-columns:repeat(auto-fill,minmax(230px,1fr))}}
+.rcard{display:flex;gap:10px;align-items:flex-start;text-align:left;width:100%;padding:8px 10px;border-radius:10px;background:var(--bg);border:1px solid var(--line)}
+.rcard[aria-pressed="true"]{border-color:var(--ink);box-shadow:inset 0 0 0 1px var(--ink);background:var(--panel)}
+.rcard img{width:42px;height:42px;border-radius:50%;border:2.5px solid;flex:none}
+.rinfo{display:flex;flex-direction:column;min-width:0;gap:1px}
+.rinfo b{font-size:14px}
+.rmeta{font-size:11.5px;color:var(--muted)}
+.rnow{font-size:12.5px;margin-top:4px;padding:4px 7px;border-radius:6px;background:var(--soft)}
+.rnow em{display:block;font-style:normal;font-size:10.5px;color:var(--muted)}
+.rmore{font-size:12px;color:var(--blue);margin-top:4px}
 .main{display:grid;grid-template-columns:minmax(0,1fr);gap:16px;align-items:start}
 @media (max-width:900px){.main{grid-template-columns:minmax(0,1fr)}}
 .mapbox{background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-canvas{display:block;width:100%;height:auto;cursor:pointer;touch-action:manipulation}
+canvas{display:block;width:100%;height:auto;cursor:pointer;touch-action:none}
+.tools{border-top:1px solid var(--line);padding:10px 12px;display:flex;flex-direction:column;gap:10px}
+.tlabel{font-weight:700;font-size:12.5px;letter-spacing:.08em;color:var(--maroon);margin-right:4px}
+#evBar button[aria-pressed="true"]{background:var(--gold);color:#1c2330;border-color:var(--gold)}
+.dock{display:flex;flex-direction:column;gap:8px;border-top:1px dashed var(--line);padding-top:10px}
+.dockpeople{display:flex;flex-wrap:wrap;gap:6px}
+.dockpeople .chip[disabled]{opacity:.5;cursor:default}
+.dockchat{max-height:180px;overflow-y:auto;font-size:13.5px}
+.dockchat p{margin:2px 0}
 .legend{display:flex;flex-wrap:wrap;gap:6px;padding:10px 12px;border-top:1px solid var(--line)}
 .chip{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line);border-radius:999px;padding:2px 10px 2px 2px;font-size:12.5px;background:var(--panel);cursor:pointer;color:var(--ink)}
 .chip img{width:26px;height:26px;border-radius:50%;border:2px solid;display:block}
@@ -132,29 +170,39 @@ svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
 </head>
 <body>
 <div class="wrap">
-<header>
+<header class="top">
   <div class="brand">
-    <h1>貝瑪崗<small>Pemagang</small></h1>
-    <p>喜馬拉雅山腳的生成式代理人小鎮 · 仿照 Park 等人〈Generative Agents〉（UIST 2023）的架構</p>
+    <p class="kicker">貝瑪崗 PEMAGANG · 喜馬拉雅山腳的生成式代理人小鎮 · 兩天日常</p>
+    <h1>今天，貝瑪崗發生什麼事？</h1>
+    <p>仿照 Park 等人〈Generative Agents〉（UIST 2023）的記憶、反思與計畫架構</p>
   </div>
-  <div class="clock" aria-live="off"><span class="d" id="cDay">第1天</span><span class="h" id="cTime">06:00</span><span class="ph" id="cPhase">清晨</span></div>
-  <div class="controls">
-    <button class="primary" id="btnPlay">播放</button>
-    <button id="btnStep">前進 10 分鐘</button>
-    <select id="speed" aria-label="模擬速度"><option value="1">1 倍速</option><option value="2" selected>2 倍速</option><option value="4">4 倍速</option><option value="8">8 倍速</option></select>
-    <button id="btnReset">重新開始</button>
-    <label class="tog hidden" id="claudeTog"><input type="checkbox" id="useClaude"> 用 Claude 寫對話</label>
-  </div>
+  <div class="daybadge"><span>DAY</span><b id="cDayN">01</b></div>
 </header>
 
 <div class="main">
+  <div class="stage">
   <section class="mapbox" aria-label="小鎮地圖">
+    <div class="infobar">
+      <span class="wicon" id="wIcon"></span><span class="h" id="cTime">06:00</span><span class="wx" id="cWx">晴天</span><span class="sep" aria-hidden="true"></span><span class="date" id="cDate">10 月 3 日 · 星期六</span><span class="ph" id="cPhase">清晨</span>
+      <div class="controls">
+        <label class="tog hidden" id="claudeTog"><input type="checkbox" id="useClaude"> 用 Claude 寫對話</label>
+        <button class="primary" id="btnPlay">▶ 播放</button>
+        <button id="btnStep">+10 分</button>
+        <select id="speed" aria-label="模擬速度"><option value="1">1×</option><option value="2" selected>2×</option><option value="4">4×</option><option value="8">8×</option></select>
+        <button id="btnReset" aria-label="重新開始" title="重新開始">↻</button>
+      </div>
+    </div>
     <canvas id="map" width="1000" height="680"></canvas>
-    <div class="legend" id="legend"></div>
-    <div class="status" id="status">按「播放」讓居民開始他們的一天。點地圖上的居民可以查看他的記憶、計畫與反思。</div>
+    <div class="tools">
+      <div class="row" id="evBar"><span class="tlabel">介入世界</span><button data-ev="fire" aria-pressed="false">失火</button><button data-ev="rain" aria-pressed="false">下大雨</button><button data-ev="sale" aria-pressed="false">市集特價</button><button data-ev="bus" aria-pressed="false">巴士誤點</button><input type="text" id="evText" placeholder="自訂事件，例如：河邊出現一頭雪豹" style="flex:1 1 14em;width:auto"><button data-ev="custom" aria-pressed="false">放到地圖上</button></div>
+      <div class="dock" id="dock"></div>
+    </div>
+    <div class="status" id="status">按「播放」讓居民開始他們的一天。點居民查看他的記憶與計畫，按住拖曳可以把他帶到別的地點。</div>
   </section>
+  <aside class="roster" aria-label="認識居民"><h2 class="rh">認識居民</h2><div id="roster"></div></aside>
+  </div>
 
-  <section class="panel">
+  <section class="panel" id="panel">
     <div class="tabs" role="tablist">
       <button role="tab" data-tab="agent" aria-selected="true">居民</button>
       <button role="tab" data-tab="log" aria-selected="false">事件紀錄</button>
@@ -234,6 +282,8 @@ svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
         <li><b>計畫</b>：每天早上從人設產生日計畫，再遞迴拆成小時區塊和 10 分鐘動作；答應赴約、聽到內心聲音都會改寫計畫。</li>
         <li><b>反應與對話</b>：在同一地點碰面時，居民依熟識度、個性與「有沒有消息想說」決定是否交談，交談內容會寫回雙方的記憶流。</li>
       </ol>
+      <h3>互動方式</h3>
+      <ul><li><b>介入世界</b>：地圖下方可以讓某處失火、下大雨、市集特價、巴士誤點，或放上自訂事件。看到的居民會記住、改變計畫，並把消息傳出去。</li><li><b>扮演居民</b>：搭巴士進鎮，點地點移動，走到居民身旁就能跟他說話。你告訴他的消息會進入他的記憶流，再由他傳給別人。</li><li><b>拖曳居民</b>：按住居民拖到別的地點，他會在那裡待一小時，然後回到原本的計畫。</li><li><b>居民互動</b>：聊天內容會以對話泡泡出現在地圖上。居民在路上遇到熟人會打招呼，順路時會一起走，休閒時段也會三四個人聚在一起聊天。</li></ul>
       <h3>論文附錄的對應</h3>
       <p><b>附錄 A 摘要快取</b>：每位居民的摘要描述由三個查詢檢索整理，每天早上更新，訪談時放進提示詞。<b>附錄 B 訪談</b>：25 題分成自我認知、記憶、計畫、反應、反思五類，改寫成貝瑪崗的情境。</p>
       <h3>哪些部分用到 Claude</h3>
@@ -251,40 +301,40 @@ svg text{fill:var(--muted);font-family:var(--mono);font-size:10px}
 /* ============ World ============ */
 const DAY=1440, T0=360, TEND=DAY+23*60, REFL_TH=34;
 const LOC={
-  gompa:{name:'貝瑪寺',x:150,y:190,subs:['大殿','經堂','轉經廊'],kind:'gompa'},
+  gompa:{name:'貝瑪寺',x:120,y:190,w:116,h:86,door:'right',subs:['大殿','經堂','轉經廊'],kind:'gompa'},
   ridge:{name:'經幡山脊',x:400,y:175,subs:['經幡步道','觀景台'],kind:'ridge'},
   teagarden:{name:'山坡茶園',x:830,y:238,subs:['上層梯田','下層梯田','採茶棚'],kind:'tea'},
-  factory:{name:'製茶廠',x:880,y:370,subs:['萎凋室','揉捻機旁','烘乾間'],kind:'factory'},
-  school:{name:'貝瑪崗小學',x:265,y:345,subs:['教室','操場','教師辦公桌'],kind:'school'},
-  teahouse:{name:'卓瑪茶館',x:530,y:360,subs:['櫃台','灶台','露台座位'],kind:'teahouse'},
-  lodge:{name:'雪豹客棧',x:715,y:420,subs:['客棧廚房','櫃台','客房'],kind:'lodge'},
+  factory:{name:'製茶廠',x:880,y:372,w:128,h:88,door:'bottom',subs:['萎凋室','揉捻機旁','烘乾間'],kind:'factory'},
+  school:{name:'貝瑪崗小學',x:265,y:345,w:124,h:88,door:'bottom',subs:['教室','操場','教師辦公桌'],kind:'school'},
+  teahouse:{name:'卓瑪茶館',x:530,y:360,w:128,h:92,door:'bottom',subs:['櫃台','灶台','露台座位'],kind:'teahouse'},
+  lodge:{name:'雪豹客棧',x:715,y:420,w:128,h:92,door:'bottom',subs:['客棧廚房','櫃台','客房'],kind:'lodge'},
   market:{name:'市集廣場',x:420,y:480,subs:['菜攤','瑪雅的粉攤','廣場空地'],kind:'market'},
-  health:{name:'衛生站',x:650,y:545,subs:['診間','藥櫃','候診長椅'],kind:'health'},
-  bus:{name:'郵局與巴士站',x:505,y:615,subs:['郵務櫃台','售票窗口','候車棚'],kind:'bus'},
-  mill:{name:'水磨坊',x:175,y:505,subs:['石磨旁','磨坊前的院子','小屋'],kind:'mill'},
-  h_gurung:{name:'古隆家石屋',x:305,y:590,subs:['廚房','客廳','臥室'],kind:'house'},
-  h_rai:{name:'拉伊家',x:850,y:590,subs:['廚房','書桌','臥室'],kind:'house'}
+  health:{name:'衛生站',x:650,y:545,w:120,h:84,door:'top',subs:['診間','藥櫃','候診長椅'],kind:'health'},
+  bus:{name:'郵局與巴士站',x:505,y:615,w:120,h:80,door:'left',subs:['郵務櫃台','售票窗口','候車棚'],kind:'bus'},
+  mill:{name:'水磨坊',x:175,y:505,w:100,h:74,door:'right',subs:['石磨旁','磨坊前的院子','小屋'],kind:'mill'},
+  h_gurung:{name:'古隆家石屋',x:305,y:592,w:96,h:70,door:'top',subs:['廚房','客廳','臥室'],kind:'house'},
+  h_rai:{name:'拉伊家',x:850,y:592,w:96,h:70,door:'top',subs:['廚房','書桌','臥室'],kind:'house'}
 };
 /* Road network: main vehicle road, village footpaths, stone-step mountain trails. Each edge passes through hand-placed bends. */
-const NODE={};for(const id in LOC)NODE[id]={x:LOC[id].x,y:LOC[id].y+14};
-Object.assign(NODE,{teagarden:{x:830,y:280},market:{x:420,y:500},ridge:{x:400,y:196},exit:{x:545,y:700},peak:{x:585,y:132}});
+const NODE={};for(const id in LOC){const L=LOC[id];NODE[id]=!L.w?{x:L.x,y:L.y+14}:L.door==='top'?{x:L.x,y:L.y-L.h/2-5}:L.door==='left'?{x:L.x-L.w/2-5,y:L.y+L.h/4}:L.door==='right'?{x:L.x+L.w/2+5,y:L.y+L.h/4}:{x:L.x,y:L.y+L.h/2+5}}
+Object.assign(NODE,{teagarden:{x:830,y:280},market:{x:420,y:500},ridge:{x:400,y:196},exit:{x:430,y:700},peak:{x:585,y:132}});
 const ROADS=[
- ['exit','bus','main',[[548,668],[520,648]]],
- ['bus','market','main',[[478,602],[455,565],[438,532]]],
- ['market','teahouse','main',[[452,478],[498,450],[524,410]]],
- ['teahouse','lodge','main',[[585,388],[650,425]]],
- ['lodge','factory','main',[[775,428],[842,402]]],
- ['factory','teagarden','path',[[910,345],[872,322],[812,312],[805,295]]],
- ['teahouse','ridge','trail',[[500,340],[452,322],[488,285],[432,258],[452,226],[410,212]]],
- ['ridge','gompa','trail',[[345,205],[285,222],[215,214],[180,212]]],
+ ['exit','bus','main',[[432,688],[436,660]]],
+ ['bus','market','main',[[428,600],[430,550]]],
+ ['market','teahouse','main',[[452,478],[498,450],[522,426]]],
+ ['teahouse','lodge','main',[[575,432],[640,470],[690,480]]],
+ ['lodge','factory','main',[[775,478],[845,442]]],
+ ['factory','teagarden','path',[[955,410],[958,335],[905,305],[855,292]]],
+ ['teahouse','ridge','trail',[[470,425],[450,380],[452,300],[488,275],[432,250],[452,222],[410,210]]],
+ ['ridge','gompa','trail',[[345,205],[285,222],[235,212]]],
  ['ridge','peak','trail',[[455,178],[500,168],[540,150]]],
- ['gompa','school','trail',[[160,232],[190,262],[228,300],[250,335]]],
- ['school','market','path',[[300,392],[352,432],[392,470]]],
- ['market','mill','path',[[365,512],[285,500],[222,522]]],
- ['market','h_gurung','path',[[392,540],[340,578]]],
- ['bus','health','path',[[565,632],[612,598]]],
- ['lodge','health','path',[[705,478],[668,515]]],
- ['health','h_rai','path',[[722,572],[790,600]]]
+ ['gompa','school','trail',[[200,245],[188,285],[190,330],[212,400]]],
+ ['school','market','path',[[300,418],[352,445],[392,475]]],
+ ['market','mill','path',[[365,512],[290,522]]],
+ ['market','h_gurung','path',[[385,530],[330,540]]],
+ ['market','health','path',[[500,522],[570,506],[620,494]]],
+ ['lodge','health','path',[[700,486]]],
+ ['health','h_rai','path',[[720,500],[800,522],[840,540]]]
 ];
 function spline(P){const out=[];for(let i=0;i<P.length-1;i++){const p0=P[i-1]||P[i],p1=P[i],p2=P[i+1],p3=P[i+2]||P[i+1];
   const n=Math.max(3,Math.ceil(Math.hypot(p2.x-p1.x,p2.y-p1.y)/6));
@@ -335,7 +385,11 @@ const ACT={
   interview:{ab:'訪談',imp:3,st:[[0,'訪談萎凋室的師傅'],[1,'記錄揉捻的時間'],[2,'聞烘乾後的茶香']]},
   notes:{ab:'筆記',imp:2,st:[[2,'整理田野筆記'],[1,'把照片分類']]},
   postcard:{ab:'寫信',imp:1,st:[[2,'寫明信片寄回台灣'],[2,'喝一杯奶茶']]},
-  sleep:{ab:'睡覺',imp:1,st:[[2,'睡覺']]}
+  sleep:{ab:'睡覺',imp:1,st:[[2,'睡覺']]},
+  firehelp:{ab:'救火',imp:7,st:[[0,'提水桶救火'],[1,'幫忙搬出東西'],[2,'安慰受驚的鄰居']]},
+  shelter:{ab:'躲雨',imp:3,st:[[0,'躲在屋簷下'],[2,'看著外面的大雨'],[1,'跟旁邊的人聊天氣']]},
+  bargain:{ab:'搶購',imp:4,st:[[0,'挑特價的蔬菜'],[1,'跟攤販殺價'],[2,'提著買到的東西']]},
+  dragged:{ab:'閒晃',imp:4,st:[[0,'四處張望'],[1,'想想接下來要做什麼'],[2,'跟附近的人點頭打招呼']]}
 };
 const WORK=new Set(['clinic','post','foreman','factory','research','interview','meditate','lodgework','mill','teach']);
 const NOCHAT=new Set(['sleep','meditate','prayer','teach']);
@@ -426,7 +480,7 @@ function init(){
     x:LOC[p.home].x,y:LOC[p.home].y,path:[],pathLoc:p.home,v:0,ph:0,face:1,seen:new Set(),chatUntil:0,chatWith:null,lastChat:-999,iv:[],planChanged:new Set(),sawDeco:false}));
   AG={};A.forEach(a=>AG[a.id]=a);
   for(const [u,v] of INIT_EDGES){AG[u].acq.add(v);AG[v].acq.add(u)}
-  S={t:T0,running:false,busy:false,done:false,log:[],stats:[],pairLast:{},attend:new Set(),newEdges:[],sel:S?S.sel:'dolma',filter:'all'};
+  S={news:[],fires:{},rain:null,sale:null,busDelay:null,t:T0,running:false,busy:false,done:false,log:[],stats:[],pairLast:{},attend:new Set(),newEdges:[],sel:S?S.sel:'dolma',filter:'all'};
   AG.dolma.know.party=T0;AG.dolma.knowFrom.party='self';AG.dolma.party='host';
   AG.pasang.know.election=T0;AG.pasang.knowFrom.election='self';
   for(const a of A){
@@ -476,7 +530,9 @@ function decompose(a,b,t){
 function awake(a){return a.cur&&a.cur.act!=='sleep'}
 function updateAction(a,t){
   const h=(t%DAY)/60;let b,key;
-  if(h<6||h>=a.sleep){b={start:a.sleep,end:30,loc:a.home,act:'sleep',desc:'睡覺'};key='sleep|'+(h<6?dayOf(t)-1:dayOf(t))}
+  if(a.override&&t>=a.override.until)a.override=null;
+  if(a.override){const o=a.override;b={start:o.start,end:o.start+(o.until-o.t0)/60,loc:o.loc,act:o.act,desc:o.desc,ev:true};key='ov|'+o.id}
+  else if(h<6||h>=a.sleep){b={start:a.sleep,end:30,loc:a.home,act:'sleep',desc:'睡覺'};key='sleep|'+(h<6?dayOf(t)-1:dayOf(t))}
   else{b=a.plan.find(x=>h>=x.start&&h<x.end)||{start:h,end:h+1,loc:a.home,act:'evening',desc:'在家休息'};key=dayOf(t)+'|'+b.start+'|'+b.act}
   if(key!==a.blkKey){a.blkKey=key;onBlockStart(a,b,t)}
   if(a.steps.length)a.step=a.steps.find(s=>t>=s.start&&t<s.end)||a.steps[a.steps.length-1];
@@ -501,7 +557,8 @@ function onBlockStart(a,b,t){
 /* ============ Perception ============ */
 function slotIndex(a){const here=A.filter(o=>o.loc===a.loc);return here.indexOf(a)}
 const SLOTS=[[-30,34],[0,40],[30,34],[-56,22],[56,22],[-16,64],[16,64],[-46,56],[46,56],[0,86]];
-function slot(a){const L=LOC[a.loc],s=SLOTS[Math.max(0,slotIndex(a))%SLOTS.length];return{x:L.x+s[0],y:L.y+s[1]}}
+const INSLOTS=[[-30,6],[0,14],[30,6],[-44,30],[44,30],[-16,34],[16,34],[-46,-12],[46,-12],[0,-14]];
+function slot(a){const L=LOC[a.loc];if(a.id==='you')return L.w?{x:L.x-L.w*.3,y:L.y+L.h*.38}:{x:L.x-80,y:L.y+50};const i=Math.max(0,slotIndex(a));if(L.w){const s=INSLOTS[i%INSLOTS.length];return{x:L.x+s[0]*L.w/128,y:L.y+s[1]*L.h/92}}const s=SLOTS[i%SLOTS.length];return{x:L.x+s[0],y:L.y+s[1]}}
 function observe(t){
   const day=dayOf(t),h=(t%DAY)/60;
   for(const a of A){
@@ -515,16 +572,18 @@ function observe(t){
 }
 
 /* ============ Conversation ============ */
-function greet(a,b,t){const h=(t%DAY)/60;const g=a.tib&&b.tib?'扎西德勒':(a.id==='xiaowen'&&b.id==='nima'?'你好':'Namaste');
-  const tod=h<11?'早安':h<17?'午安':'晚上好';return a.acq.has(b.id)?`${g}，${b.name}！${tod}，最近還好嗎？`:`${g}，我好像還沒正式跟你打過招呼。我是${a.name}，${a.job}。`}
-function shareFor(a,b,t){
-  for(const f of ['party','election']){
-    if(!a.know[f]||b.know[f])continue;
-    if(f==='party'&&(dayOf(t)>2||(dayOf(t)===2&&t%DAY>=19*60)))continue;
-    const p=(f==='party'&&a.id==='dolma')||(f==='election'&&a.id==='pasang')?.95:a.gossip*.8;
-    if(rng()<p)return f}
-  return null}
-function hasNews(a,b){return ['party','election'].some(f=>a.know[f]&&!b.know[f])}
+const LEISURE=new Set(['lunch','teatime','party','stroll','football','evening','breakfast','sell','shop','bargain','shelter','postcard','help','spin','firehelp','dragged']);
+function who(id){return id==='you'?PL:AG[id]}
+function greetWord(a,b){return a.tib&&b&&b.tib?'扎西德勒':(a.id==='xiaowen'&&b&&b.id==='nima'?'你好':'Namaste')}
+function tod(t){const h=(t%DAY)/60;return h<11?'早安':h<17?'午安':'晚上好'}
+function greet(a,b,t){const g=greetWord(a,b);return a.acq.has(b.id)?`${g}，${b.name}！${tod(t)}，最近還好嗎？`:`${g}，我好像還沒正式跟你打過招呼。我是${a.name}，${a.job}。`}
+function newsById(id){return S.news.find(n=>n.id===id)}
+function facts(){return ['party','election',...S.news.map(n=>n.id)]}
+function labelOf(f){return f==='party'?'燈節茶會':f==='election'?'帕桑參選':(newsById(f)||{}).label||f}
+function factOpen(f,t){if(f==='party')return !(dayOf(t)>2||(dayOf(t)===2&&t%DAY>=19*60));const n=newsById(f);return !n||t<n.stale}
+function shareFor(a,b,t){for(const f of facts()){if(!a.know[f]||b.know[f]||!factOpen(f,t))continue;
+  const p=(f==='party'&&a.id==='dolma')||(f==='election'&&a.id==='pasang')?.95:a.gossip*.8+(newsById(f)?.2:0);if(rng()<p)return f}return null}
+function hasNews(a,b){return facts().some(f=>a.know[f]&&!b.know[f]&&factOpen(f,S.t))}
 function decideParty(b,t){
   if(b.id==='dolma')return;
   const c=conflictAt(b,2,17.5);
@@ -535,57 +594,181 @@ function decideParty(b,t){
     else addLog({t,type:'plan',who:[b.id],text:`${b.name}決定明天傍晚去燈節茶會，已寫進明天的計畫。`})}
   else remember(b,'plan',`燈節茶會那時候我${c?'得'+c.desc:'不太想去人多的地方'}，大概去不了`,4,['party','dolma'],t);
 }
+function shareLine(a,f,t){const day=dayOf(t)===1?'明天':'今天';
+  if(f==='party')return a.id==='dolma'?`${day}傍晚五點，我在茶館辦燈節茶會，會點滿酥油燈、煮一大鍋奶茶，你一定要來！`:`你聽說了嗎？卓瑪${day}傍晚五點要在茶館辦燈節茶會。`;
+  if(f==='election')return a.id==='pasang'?'我打算參選下一屆的村代表，想爭取經費把山路和水管修好。你覺得怎麼樣？':'你聽說了嗎？帕桑要參選村代表了。';
+  const n=newsById(f);return a.knowFrom[f]==='saw'?n.seen:`你聽說了嗎？${n.text}`}
+function learn(b,f,a,t){
+  b.know[f]=t;b.knowFrom[f]=a.id;
+  if(f==='party'){remember(b,'chat',a.id==='dolma'?'卓瑪邀請我第二天傍晚五點到茶館參加燈節茶會':`${a.name}告訴我，卓瑪第二天傍晚五點要在茶館辦燈節茶會`,7,['party','dolma','teahouse',a.id],t);
+    decideParty(b,t);addLog({t,type:'share',who:[a.id,b.id].filter(x=>AG[x]),text:`${b.name}從${a.name}那裡得知燈節茶會。`});
+    return{line:b.party==='yes'?pick(['太好了，我一定去！','燈節茶會？聽起來很熱鬧，我會去。','好，我到時候過去坐坐。']):(b.partyConflict?`那時候我得${b.partyConflict.desc}，不一定走得開，我盡量。`:'我不太習慣熱鬧的場合……不過謝謝你告訴我。'),sum:`聊到燈節茶會（${b.name}${b.party==='yes'?'答應出席':'可能不去'}）`}}
+  if(f==='election'){remember(b,'chat',a.id==='pasang'?'帕桑親口告訴我，他要參選下一屆村代表，想修好山路和水管':`${a.name}說帕桑要參選村代表`,7,['election','pasang',a.id],t);
+    addLog({t,type:'share',who:[a.id,b.id].filter(x=>AG[x]),text:`${b.name}從${a.name}那裡得知帕桑要參選。`});return{line:b.onE||'嗯，我再想想。',sum:'聊到帕桑參選村代表'}}
+  const n=newsById(f);remember(b,'chat',`${a.name}告訴我：${n.text}`,Math.max(3,n.imp-1),[n.id,n.loc,a.id],t);
+  addLog({t,type:'share',who:[a.id,b.id].filter(x=>AG[x]),text:`${b.name}從${a.name}那裡聽說「${n.label}」。`});
+  return{line:pick(n.replies),sum:`聊到${n.label}`}}
 function startChat(a,b,t){
   if(hasNews(b,a)&&!hasNews(a,b))[a,b]=[b,a];
-  const share=shareFor(a,b,t);
-  const newAcq=!a.acq.has(b.id);
-  const L=[{s:a.id,x:greet(a,b,t)}];
-  L.push({s:b.id,x:newAcq?`你好，我是${b.name}，${b.job}。我正在${b.step?b.step.text:b.cur.desc}。`:`還不錯！我正在${b.step?b.step.text:b.cur.desc}。`});
-  let summary;
-  if(share==='party'){
-    b.know.party=t;b.knowFrom.party=a.id;
-    L.push({s:a.id,x:a.id==='dolma'?'明天傍晚五點，我在茶館辦燈節茶會，會點滿酥油燈、煮一大鍋奶茶，你一定要來！':'你聽說了嗎？卓瑪明天傍晚五點要在茶館辦燈節茶會。'});
-    remember(b,'chat',a.id==='dolma'?'卓瑪邀請我明天（第二天）傍晚五點到茶館參加燈節茶會':`${a.name}告訴我，卓瑪第二天傍晚五點要在茶館辦燈節茶會`,7,['party','dolma','teahouse',a.id],t);
-    decideParty(b,t);
-    L.push({s:b.id,x:b.party==='yes'?pick(['太好了，我一定去！','燈節茶會？聽起來很熱鬧，我會去。','好，我到時候過去坐坐。']):(b.partyConflict?`明天傍晚我得${b.partyConflict.desc}，不一定走得開，我盡量。`:'我不太習慣熱鬧的場合……不過謝謝你告訴我。')});
-    summary=`聊到燈節茶會（${b.name}${b.party==='yes'?'答應出席':'可能不去'}）`;
-    addLog({t,type:'share',who:[a.id,b.id],text:`${b.name}從${a.name}那裡得知燈節茶會。`});
-  }else if(share==='election'){
-    b.know.election=t;b.knowFrom.election=a.id;
-    L.push({s:a.id,x:a.id==='pasang'?'我打算參選下一屆的村代表，想爭取經費把山路和水管修好。你覺得怎麼樣？':'你聽說了嗎？帕桑要參選村代表了。'});
-    L.push({s:b.id,x:b.onE||'嗯，我再想想。'});
-    remember(b,'chat',a.id==='pasang'?'帕桑親口告訴我，他要參選下一屆村代表，想修好山路和水管':`${a.name}說帕桑要參選村代表`,7,['election','pasang',a.id],t);
-    summary='聊到帕桑參選村代表';
-    addLog({t,type:'share',who:[a.id,b.id],text:`${b.name}從${a.name}那裡得知帕桑要參選。`});
-  }else{
-    L.push({s:a.id,x:pick(a.talk.filter(x=>!x.includes(b.name)))});
-    L.push({s:b.id,x:pick(['真的嗎？','哈哈，是這樣啊。','嗯，我也這麼覺得。','這倒是真的。'])+(rng()<.6?pick(b.talk.filter(x=>!x.includes(a.name))):'')});
-    summary='閒聊近況';
-  }
+  const share=shareFor(a,b,t),newAcq=!a.acq.has(b.id);
+  const L=[{s:a.id,x:greet(a,b,t)},{s:b.id,x:newAcq?`你好，我是${b.name}，${b.job}。我正在${b.step?b.step.text:b.cur.desc}。`:`還不錯！我正在${b.step?b.step.text:b.cur.desc}。`}];
+  let summary='閒聊近況';
+  if(share){L.push({s:a.id,x:shareLine(a,share,t)});const r=learn(b,share,a,t);L.push({s:b.id,x:r.line});summary=r.sum}
+  else{L.push({s:a.id,x:pick(a.talk.filter(x=>!x.includes(b.name)))});
+    L.push({s:b.id,x:pick(['真的嗎？','哈哈，是這樣啊。','嗯，我也這麼覺得。','這倒是真的。'])+(rng()<.6?pick(b.talk.filter(x=>!x.includes(a.name))):'')})}
   L.push({s:a.id,x:pick(['那我先去忙了，回頭見！','好，改天再聊。','我得走了，保重！'])});
   a.acq.add(b.id);b.acq.add(a.id);if(newAcq)S.newEdges.push([a.id,b.id]);
   const loc=LOC[a.loc].name;
   remember(a,'chat',`在${loc}和${b.name}聊天，${summary}`,4,[b.id,a.loc,...(share?[share]:[])],t);
   remember(b,'chat',`在${loc}和${a.name}聊天，${summary}`,4,[a.id,a.loc,...(share?[share]:[])],t);
-  if(share)remember(a,'chat',`我告訴了${b.name}${share==='party'?'燈節茶會':'參選'}的事`,3,[b.id,share],t);
+  if(share)remember(a,'chat',`我告訴了${b.name}${labelOf(share)}的事`,3,[b.id,share],t);
   a.chatUntil=b.chatUntil=t+20;a.chatWith=b.id;b.chatWith=a.id;a.lastChat=b.lastChat=t;S.pairLast[[a.id,b.id].sort().join()]=t;
   const entry=addLog({t,type:'chat',who:[a.id,b.id],loc:a.loc,lines:L,text:`${a.name}和${b.name}在${loc}聊天：${summary}`});
-  if(S.useClaude&&sample)claudeDialogue(entry,a,b,share,t);
+  if(S.useClaude&&sample)claudeDialogue(entry,a,b,share,t);else playLines(L);
+}
+function startGroup(g,t){
+  const a=g.find(x=>g.some(o=>o!==x&&hasNews(x,o)))||g[0],others=g.filter(o=>o!==a);
+  const L=[{s:a.id,x:`${greetWord(a,others[0])}，大家${tod(t)}！`}];
+  let f=null;for(const ff of facts())if(a.know[ff]&&factOpen(ff,t)&&others.some(o=>!o.know[ff])&&rng()<Math.max(.55,a.gossip)){f=ff;break}
+  let summary='一起閒聊';
+  if(f){L.push({s:a.id,x:shareLine(a,f,t)});for(const o of others)if(!o.know[f]){const r=learn(o,f,a,t);L.push({s:o.id,x:r.line})}summary=`一起聊到${labelOf(f)}`}
+  else{L.push({s:a.id,x:pick(a.talk)});const o=pick(others);L.push({s:o.id,x:pick(['哈哈，真的！','對啊對啊。','我也這麼想。'])+pick(o.talk)});
+    const o2=others.find(x=>x!==o);if(o2)L.push({s:o2.id,x:pick(['你們聊得真開心，',  '說到這個，'])+pick(o2.talk)})}
+  L.push({s:pick(others).id,x:pick(['好啦，大家改天再聚！','時間不早了，我先走囉。','下次再一起喝茶！'])});
+  const loc=LOC[a.loc].name;
+  for(const x of g){for(const y of g)if(x!==y&&!x.acq.has(y.id)){x.acq.add(y.id);y.acq.add(x.id);S.newEdges.push([x.id,y.id])}
+    remember(x,'chat',`在${loc}和${g.filter(y=>y!==x).map(y=>y.name).join('、')}一起聊天，${summary}`,4,[...g.filter(y=>y!==x).map(y=>y.id),a.loc,...(f?[f]:[])],t);
+    x.chatUntil=t+30;x.chatWith=x===a?others[0].id:a.id;x.lastChat=t}
+  for(let i=0;i<g.length;i++)for(let j=i+1;j<g.length;j++)S.pairLast[[g[i].id,g[j].id].sort().join()]=t;
+  addLog({t,type:'chat',who:g.map(x=>x.id),loc:a.loc,lines:L,text:`${g.map(x=>x.name).join('、')}在${loc}${summary}`});
+  playLines(L);
 }
 function converse(t){
   if(S.busy)return;
-  const free=A.filter(a=>awake(a)&&t>=a.chatUntil&&t-a.lastChat>=40&&!NOCHAT.has(a.cur.act));
+  const free=A.filter(a=>awake(a)&&t>=a.chatUntil&&t-a.lastChat>=40&&!NOCHAT.has(a.cur.act)&&!a.dragging);
   const by={};free.forEach(a=>(by[a.loc]=by[a.loc]||[]).push(a));
   for(const loc in by){const g=by[loc].sort(()=>rng()-.5);
+    const lz=g.filter(x=>LEISURE.has(x.cur.act));
+    if(lz.length>=3&&rng()<.14*(lz[0].cur.act==='party'?2:1)){startGroup(lz.slice(0,rng()<.5?3:4),t);continue}
     for(let i=0;i<g.length;i++)for(let j=i+1;j<g.length;j++){const a=g[i],b=g[j];
       if(t<a.chatUntil||t<b.chatUntil)continue;
-      const lp=S.pairLast[[a.id,b.id].sort().join()];if(lp!==undefined&&t-lp<180)continue;
-      let p=.1*(a.social+b.social)/2*(a.acq.has(b.id)?1:.7);
+      const lp=S.pairLast[[a.id,b.id].sort().join()];if(lp!==undefined&&t-lp<150)continue;
+      let p=.16*(a.social+b.social)/2*(a.acq.has(b.id)?1:.75);
       if(hasNews(a,b)||hasNews(b,a))p*=2.0;
       if(a.cur.act==='party')p*=2.5;
       if(rng()<p){startChat(a,b,t);if(S.busy)return}
     }}
 }
+
+/* ============ Speech bubbles ============ */
+const SPEECH=[];
+function playLines(L){const t0=performance.now();L.forEach((l,i)=>SPEECH.push({id:l.s,x:l.x,at:t0+i*1500,dur:2500}))}
+function sayNow(id,x,dur=2600,delay=0){SPEECH.push({id,x,at:performance.now()+delay,dur})}
+
+/* ============ World events (user interventions) ============ */
+const INDOOR=['teahouse','lodge','school','health','bus','mill','factory','gompa'];
+const OUTDOOR=new Set(['ridge','teagarden','market']);
+function ldist(p,q){return Math.hypot(LOC[p].x-LOC[q].x,LOC[p].y-LOC[q].y)}
+function setOverride(a,o,t,quiet){const h=(t%DAY)/60;a.override={...o,start:h,t0:t,id:t+'|'+o.act+'|'+o.loc};a.blkKey='';updateAction(a,t);
+  if(!quiet)addLog({t,type:'plan',who:[a.id],text:`${a.name}改變計畫：${o.desc}。`})}
+function addNews(n){S.news.push(n);return n}
+function applyEvent(type,loc){
+  const t=S.t;let msg='';
+  if(type==='fire'){if(S.fires[loc]){setStatus('那裡已經在燒了。');return}
+    const n=addNews({id:'fire'+t+loc,label:`${LOC[loc].name}失火`,text:`${LOC[loc].name}失火了！`,seen:`我親眼看到${LOC[loc].name}冒出濃煙，失火了！`,imp:8,loc,stale:t+300,replies:['天啊！有人受傷嗎？','真的嗎？我得去看看能不能幫忙。','希望大家都平安……']});
+    S.fires[loc]={until:t+90,news:n.id};msg=`${LOC[loc].name}失火了！附近的居民會看到濃煙並做出反應。`}
+  else if(type==='rain'){S.rain={until:t+120};for(const a of A)if(awake(a))remember(a,'obs','突然下起大雨了',4,['rain'],t);msg='開始下大雨，戶外的居民會找地方躲雨，大約持續兩小時。'}
+  else if(type==='sale'){addNews({id:'sale'+t,label:'市集特價',text:'市集今天在大特價，蔬菜和布料都便宜一半！',seen:'我在市集看到攤販都在大特價，便宜一半！',imp:5,loc:'market',stale:t+180,replies:['真的？那我等等去看看！','哇，太好了，我正好缺東西。','便宜一半？我得趕快去！']});S.sale={until:t+180};msg='市集開始大特價三小時。聽到消息又有空的居民會跑去搶購。'}
+  else if(type==='bus'){const n=addNews({id:'bus'+t,label:'巴士誤點',text:'今天的巴士因為山路坍方要誤點兩個小時。',seen:'巴士站公告今天的巴士會誤點兩個小時，山路又坍方了。',imp:5,loc:'bus',stale:t+360,replies:['又是那段山路……','唉，那我的包裹也要晚到了。','難怪巴士站擠滿了人。']});S.busDelay={until:t+120};
+    const bk=AG.bikash;bk.know[n.id]=t;bk.knowFrom[n.id]='saw';remember(bk,'obs',n.seen,5,[n.id,'bus'],t);msg='巴士誤點兩小時。比卡什最先知道，消息會從巴士站傳開。'}
+  else if(type==='custom'){const text=$('#evText').value.trim();if(!text){setStatus('先在輸入框寫下事件內容。');return}
+    addNews({id:'c'+t+loc,label:text.length>14?text.slice(0,14)+'…':text,text:`${LOC[loc].name}那邊${text}`,seen:`我在${LOC[loc].name}親眼看到：${text}`,imp:6,loc,stale:t+600,replies:['真的嗎？','我都不知道耶！','這可真是件大事。','等等我也去看看。']});$('#evText').value='';msg=`事件「${text}」發生在${LOC[loc].name}。`}
+  addLog({t,type:'plan',text:`世界事件：${msg}`});setStatus(msg);setEvMode(null);worldTick(t);dirty=true;logDirty=true}
+function worldTick(t){
+  for(const loc in S.fires){const F=S.fires[loc],n=newsById(F.news);
+    if(t>=F.until){delete S.fires[loc];for(const a of A)if(a.loc===loc&&awake(a))remember(a,'obs',`${LOC[loc].name}的火終於撲滅了`,5,[n.id,loc],t);addLog({t,type:'plan',text:`${LOC[loc].name}的火撲滅了。`});continue}
+    for(const a of A){
+      if(!a.know[n.id]&&(a.loc===loc||(awake(a)&&ldist(a.loc,loc)<210))){a.know[n.id]=t;a.knowFrom[n.id]='saw';if(!awake(a))remember(a,'obs',`半夜被驚醒：${LOC[loc].name}失火了！`,9,[n.id,loc],t);else remember(a,'obs',n.seen,8,[n.id,loc],t)}
+      if(a.know[n.id]&&!(a.resp||{})[n.id]){a.resp=a.resp||{};a.resp[n.id]=1;
+        if(a.home===loc&&!awake(a)){setOverride(a,{loc:'market',act:'firehelp',desc:`從失火的${LOC[loc].name}逃出來`,until:F.until},t);continue}
+        if(!awake(a))continue;
+        const p=a.id==='anil'||a.home===loc||a.loc===loc?1:.12+.35*a.social;
+        if(rng()<p)setOverride(a,{loc,act:'firehelp',desc:a.id==='anil'?`帶著急救箱趕到${LOC[loc].name}`:`趕到${LOC[loc].name}幫忙救火`,until:F.until},t)}}}
+  if(S.rain){if(t>=S.rain.until){S.rain=null;addLog({t,type:'plan',text:'雨停了，居民回到原本的計畫。'});for(const a of A)if(a.override&&a.override.act==='shelter')a.override.until=t}
+    else for(const a of A)if(awake(a)&&OUTDOOR.has(a.loc)&&!(a.override&&a.override.act!=='dragged')){const to=[...INDOOR,a.home].sort((p,q)=>ldist(a.loc,p)-ldist(a.loc,q))[0];setOverride(a,{loc:to,act:'shelter',desc:`跑到${LOC[to].name}躲雨`,until:S.rain.until},t)}}
+  if(S.sale&&t>=S.sale.until){S.sale=null;addLog({t,type:'plan',text:'市集特價結束了。'})}
+  if(S.busDelay&&t>=S.busDelay.until)S.busDelay=null;
+  for(const n of S.news){if(t>=n.stale)continue;
+    for(const a of A)if(!a.know[n.id]&&awake(a)&&a.loc===n.loc&&!n.id.startsWith('fire')){a.know[n.id]=t;a.knowFrom[n.id]='saw';remember(a,'obs',n.seen,n.imp,[n.id,n.loc],t)}
+    if(n.id.startsWith('sale')&&S.sale)for(const a of A){if(!a.know[n.id]||!awake(a)||a.override||(a.resp||{})[n.id]||WORK.has(a.cur.act))continue;a.resp=a.resp||{};a.resp[n.id]=1;
+      if(a.loc!=='market'&&rng()<.6)setOverride(a,{loc:'market',act:'bargain',desc:'到市集搶特價',until:Math.min(S.sale.until,t+50)},t)}}
+}
+function dropAgent(a,loc){const t=S.t,wasAsleep=!awake(a);
+  a.chatUntil=0;a.chatWith=null;
+  setOverride(a,{loc,act:'dragged',desc:`被帶到${LOC[loc].name}，四處看看`,until:t+60},t,true);
+  remember(a,'obs',wasAsleep?`我被吵醒，發現自己在${LOC[loc].name}`:`我突然發現自己在${LOC[loc].name}`,5,[loc],t);
+  a.pathLoc=loc;a.path=[];addLog({t,type:'plan',who:[a.id],text:`你把${a.name}帶到了${LOC[loc].name}。`});sayNow(a.id,wasAsleep?'咦？我怎麼在這裡……':'咦，我怎麼走到這裡來了？');dirty=true}
+
+/* ============ Player character ============ */
+const PL={id:'you',name:'旅人',full:'旅人',joined:false,loc:'bus',home:'bus',x:545,y:700,path:[],pathLoc:'exit',v:0,ph:0,face:1,arrived:false,talkTo:null,chats:{},job:'外地來的旅人'};
+function resetPlayer(){Object.assign(PL,{joined:false,loc:'bus',x:545,y:700,path:[],pathLoc:'exit',v:0,ph:0,face:1,arrived:false,talkTo:null,chats:{}});renderDock(true)}
+function joinPlayer(){PL.name=($('#plName').value.trim()||'旅人').slice(0,8);PL.full=PL.name;PL.joined=true;PL.x=NODE.exit.x;PL.y=NODE.exit.y;PL.pathLoc='exit';PL.loc='bus';PL.arrived=false;
+  addLog({t:S.t,type:'plan',text:`${PL.name}搭巴士來到了貝瑪崗。`});renderDock(true)}
+function movePlayer(loc){PL.loc=loc;PL.arrived=false;renderDock()}
+function peopleHere(){return A.filter(a=>a.loc===PL.loc&&Math.hypot(a.x-PL.x,a.y-PL.y)<140)}
+function onPlayerArrive(){const t=S.t,here=peopleHere().filter(awake);
+  for(const a of here)remember(a,'obs',`看到一位外地旅人${PL.name}來到${LOC[PL.loc].name}`,3,['you',PL.loc],t);
+  const g=here.filter(a=>t>=a.chatUntil).sort((p,q)=>q.social-p.social)[0];
+  if(g&&rng()<g.social){const line=g.metPlayer?`${PL.name}，又見面了！`:`${greetWord(g,null)}！你是新來的旅人嗎？歡迎來到貝瑪崗。`;sayNow(g.id,line);(PL.chats[g.id]=PL.chats[g.id]||[]).push({s:g.id,x:line});if(!PL.talkTo)PL.talkTo=g.id}
+  renderDock()}
+async function playerSay(){const inp=$('#plMsg');const msg=inp.value.trim();if(!msg||PL.busy)return;const r=AG[PL.talkTo];
+  if(!r){setStatus('先在下方選一位你身旁的居民。');return}
+  if(r.loc!==PL.loc||!awake(r)){setStatus(`${r.name}${awake(r)?'已經離開了':'正在睡覺'}。`);return}
+  inp.value='';const t=S.t,log=(PL.chats[r.id]=PL.chats[r.id]||[]);log.push({s:'you',x:msg});sayNow('you',msg);
+  r.chatUntil=t+20;r.chatWith='you';r.lastChat=t;
+  remember(r,'chat',`外地旅人${PL.name}在${LOC[r.loc].name}跟我說：「${msg}」`,5,[...kwFromText(msg),'you',r.loc],t);
+  const k=kwFromText(msg);let learned=null;
+  for(const f of ['party','election'])if(k.has(f)&&!r.know[f]&&factOpen(f,t))learned=learn(r,f,PL,t).line;
+  for(const n of S.news)if(!r.know[n.id]&&t<n.stale&&(msg.includes(n.label.replace('…',''))||msg.includes(LOC[n.loc].name.slice(0,2))&&n.id.startsWith('c')))learned=learn(r,n.id,PL,t).line;
+  PL.busy=true;log.push({s:r.id,x:'…'});renderDock();
+  const reply=await residentReply(r,msg,learned);
+  log[log.length-1]={s:r.id,x:reply};PL.busy=false;r.metPlayer=true;sayNow(r.id,reply,3200);
+  remember(r,'chat',`我回答${PL.name}：「${reply}」`,3,['you'],t);
+  addLog({t,type:'chat',who:[r.id],loc:r.loc,lines:[{s:r.id,x:reply}],text:`${PL.name}和${r.name}在${LOC[r.loc].name}說話：「${msg}」`});renderDock();dirty=true}
+async function residentReply(r,msg,learned){
+  const ret=retrieve(r,{text:msg,kw:kwFromText(msg)},8,S.t).filter(x=>!x.m.kw.has('you')).slice(0,6);
+  if(sample){const hist=(PL.chats[r.id]||[]).slice(-9,-1).map(m=>`${m.s==='you'?PL.name:r.name}：${m.x}`).join('\n');
+    const prompt=`你正在扮演「貝瑪崗」小鎮模擬中的居民${r.full}。貝瑪崗是喜馬拉雅山腳的虛構小鎮，這個模擬仿照〈Generative Agents〉論文。
+你的摘要描述：
+${r.summary.text}
+現在時間：${stamp(S.t)}。你在${LOC[r.loc].name}，正在${r.cur.desc}。
+一位從外地來的旅人「${PL.name}」走過來跟你說話。${r.metPlayer?'你們剛才已經聊過。':'這是你們第一次見面。'}
+和對方的話最相關的記憶：
+${memLines(ret)}
+${learned?'你剛從旅人口中聽到一個新消息，請自然地回應它。\n':''}${hist?'剛才的對話：\n'+hist+'\n':''}旅人說：「${msg}」
+規則：用第一人稱、台灣繁體中文口語回 1 到 3 句，符合你的個性；記憶裡沒有的事不要編造。只輸出你要說的話。`;
+    try{return(await sample(prompt,{cache:false,modelTier:'quick'})).text.trim().replace(/^「|」$/g,'')}catch(e){disableClaude(e)}}
+  const hi=r.metPlayer?'':`${greetWord(r,null)}！我是${r.name}，${r.job}。`;
+  if(learned)return hi+learned;
+  if(/[?？嗎呢]|什麼|誰|哪|幾點|怎麼/.test(msg)){const a=localAnswer(r,msg,ret);return hi+(a.startsWith('（')?'嗯……這我不太清楚耶。':a.replace(/^我記得：\n・/,'我記得，').replace(/\n・/g,'；'))}
+  return hi+pick(r.talk)}
+let dockState='';
+function renderDock(force){const d=$('#dock');const st=PL.joined?'in':'out';
+  if(st!==dockState||force){dockState=st;
+    d.innerHTML=PL.joined?`<div class="row"><span class="tlabel">扮演居民</span><span id="dockHead"></span><button id="btnLeave">離開小鎮</button></div><div id="dockPeople" class="dockpeople"></div><div id="dockChat" class="dockchat"></div><div class="row"><input type="text" id="plMsg" placeholder="對身旁的居民說些什麼，也可以告訴他消息…"><button id="plSend">說</button></div>`
+      :`<div class="row"><span class="tlabel">扮演居民</span><input type="text" id="plName" value="${esc(PL.name)}" maxlength="8" style="max-width:9em" aria-label="你的角色名字"><button id="btnJoin">搭巴士進鎮</button><span class="note">加入後點地圖上的地點就能走過去，走到居民身旁就能和他說話。</span></div>`;
+    if(PL.joined){$('#btnLeave').onclick=()=>{PL.joined=false;addLog({t:S.t,type:'plan',text:`${PL.name}搭巴士離開了貝瑪崗。`});resetPlayer()};$('#plSend').onclick=playerSay;$('#plMsg').addEventListener('keydown',e=>{if(e.key==='Enter')playerSay()})}
+    else $('#btnJoin').onclick=joinPlayer}
+  if(!PL.joined)return;
+  $('#dockHead').textContent=`${PL.name}${PL.arrived?'在':'正走向'}${LOC[PL.loc].name}　·　點地圖上的地點移動`;
+  const here=PL.arrived?peopleHere():[];
+  if(PL.talkTo&&!here.includes(AG[PL.talkTo]))PL.talkTo=here.find(awake)?.id||null;
+  $('#dockPeople').innerHTML=here.length?here.map(a=>`<button class="chip" data-id="${a.id}" aria-pressed="${a.id===PL.talkTo}" ${awake(a)?'':'disabled'}><img src="${PORTRAIT[a.id]}" alt="" style="border-color:${a.color}">${esc(a.name)}${awake(a)?'':'（睡覺中）'}</button>`).join(''):`<span class="note">${PL.arrived?'這裡現在沒有人。':'走路中…'}</span>`;
+  const r=AG[PL.talkTo],log=r?(PL.chats[r.id]||[]):[];
+  $('#dockChat').innerHTML=r?(log.length?log.slice(-8).map(m=>`<p><b style="color:${m.s==='you'?'var(--ink)':r.color}">${esc(m.s==='you'?PL.name:r.name)}</b>：${esc(m.x)}</p>`).join(''):`<p class="note">你正對著${esc(r.name)}。說聲你好吧。</p>`):'';
+  const inp=$('#plMsg');if(inp)inp.placeholder=r?`對${r.name}說…（提到燈節茶會或參選，他就會知道）`:'選一位身旁的居民再說話';
+}
+$('#dock').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b){PL.talkTo=b.dataset.id;renderDock()}});
 
 /* ============ Reflection ============ */
 function insightFor(a,f){
@@ -628,7 +811,7 @@ function tick(){
   if(S.t>=TEND){finish();return}
   S.t+=10;const t=S.t,m=t%DAY;
   for(const a of A){if(m===360)makeDayPlan(a,dayOf(t),t);updateAction(a,t)}
-  observe(t);converse(t);
+  worldTick(t);observe(t);converse(t);
   for(const a of A)if(a.impAcc>=REFL_TH&&awake(a))reflectLocal(a,t);
   if(m%60===0)pushStats(t);
   if(dayOf(t)===2&&m>=17*60&&m<19*60)for(const a of A)if(a.loc==='teahouse'&&a.cur.act==='party')S.attend.add(a.id);
@@ -658,7 +841,7 @@ async function claudeDialogue(entry,a,b,share,t){
   const ra=retrieve(a,{text:b.name+' '+(share==='party'?'燈節茶會':share==='election'?'參選':''),kw:[b.id,...(share?[share]:[])]},5,t,false);
   const rb=retrieve(b,{text:a.name,kw:[a.id]},5,t,false);
   const must=share==='party'?(a.id==='dolma'?`${a.name}邀請${b.name}參加第二天傍晚五點在茶館的燈節茶會；${b.name}${b.party==='yes'?'答應出席':'表示可能去不了'+(b.partyConflict?'（要'+b.partyConflict.desc+'）':'')}`:`${a.name}轉告${b.name}：卓瑪第二天傍晚五點在茶館辦燈節茶會；${b.name}${b.party==='yes'?'說會去':'表示可能去不了'}`)
-    :share==='election'?`${a.name}${a.id==='pasang'?'親口說自己要參選村代表，想修好山路和水管':'轉告帕桑要參選村代表'}；${b.name}的反應：${b.onE}`:'沒有特別要傳達的消息，閒聊彼此的近況或工作。';
+    :share==='election'?`${a.name}${a.id==='pasang'?'親口說自己要參選村代表，想修好山路和水管':'轉告帕桑要參選村代表'}；${b.name}的反應：${b.onE}`:newsById(share)?`${a.name}告訴${b.name}：${newsById(share).text}；${b.name}自然地回應`:'沒有特別要傳達的消息，閒聊彼此的近況或工作。';
   const prompt=`你在為一個仿照〈Generative Agents〉論文的小鎮模擬寫對話。小鎮是喜馬拉雅山腳的「貝瑪崗」。
 現在是${stamp(t)}，地點：${LOC[a.loc].name}。
 ${a.name}（${a.age}歲，${a.job}）人設：${a.persona}
@@ -673,7 +856,7 @@ ${memLines(rb)}
   try{const out=await sample.json(prompt,{modelTier:'quick',cache:false});
     if(Array.isArray(out)&&out.length){entry.lines=out.filter(x=>x&&x.text).map(x=>({s:String(x.speaker).includes(b.name)?b.id:a.id,x:String(x.text)}));entry.byClaude=true}
   }catch(e){entry.note='（Claude 生成失敗，保留範本對話）';disableClaude(e);setStatus(errCopy(e))}
-  entry.pending=false;S.busy=false;logDirty=true;if(!S.done)setStatus(S.running?'模擬進行中。':'已暫停。');
+  entry.pending=false;S.busy=false;playLines(entry.lines);logDirty=true;if(!S.done)setStatus(S.running?'模擬進行中。':'已暫停。');
 }
 
 /* ============ Rendering: map ============ */
@@ -687,17 +870,17 @@ function drawBackground(b){
   b.fillStyle='#f7f9fb';for(let i=1;i<peaks.length-1;i++){const[p,q,n]=[peaks[i-1],peaks[i],peaks[i+1]];if(q[1]<70&&q[1]<p[1]&&q[1]<n[1]){const f=.3;b.beginPath();b.moveTo(q[0],q[1]);b.lineTo(q[0]+(n[0]-q[0])*f,q[1]+(n[1]-q[1])*f);b.lineTo(q[0]+(n[0]-q[0])*f*.4,q[1]+(n[1]-q[1])*f*.55+4);b.lineTo(q[0]+(p[0]-q[0])*f*.5,q[1]+(p[1]-q[1])*f*.6+6);b.lineTo(q[0]+(p[0]-q[0])*f,q[1]+(p[1]-q[1])*f);b.closePath();b.fill()}}
   b.beginPath();b.moveTo(0,150);for(let x=0;x<=1000;x+=40)b.lineTo(x,118+Math.sin(x/90)*12+r()*8);b.lineTo(1000,160);b.lineTo(0,160);b.closePath();b.fillStyle='#7c9a7a';b.fill();
   for(let i=0;i<900;i++){const x=r()*1000,y=150+r()*530;b.fillStyle=r()<.5?'rgba(40,70,35,.10)':'rgba(255,255,230,.10)';b.fillRect(x,y,2+r()*3,2+r()*3)}
-  for(let i=0;i<14;i++){const y0=165+i*13;b.beginPath();b.moveTo(700,y0+18);b.quadraticCurveTo(840,y0-6,990,y0+14);b.strokeStyle=i%2?'#3f6f3a':'#557f45';b.lineWidth=6;b.setLineDash([4,3]);b.lineCap='round';b.stroke()}
+  for(let i=0;i<11;i++){const y0=165+i*13;b.beginPath();b.moveTo(700,y0+18);b.quadraticCurveTo(840,y0-6,990,y0+14);b.strokeStyle=i%2?'#3f6f3a':'#557f45';b.lineWidth=6;b.setLineDash([4,3]);b.lineCap='round';b.stroke()}
   b.setLineDash([]);
   b.lineCap='round';b.beginPath();b.moveTo(250,125);b.bezierCurveTo(220,250,70,330,105,470);b.bezierCurveTo(130,560,60,620,90,690);b.strokeStyle='#5f93b8';b.lineWidth=18;b.stroke();b.strokeStyle='#9cc7e1';b.lineWidth=6;b.stroke();
   drawRoads(b);
-  for(let i=0;i<70;i++){const x=r()*1000,y=170+r()*500;let ok=true;for(const id in LOC){if(Math.hypot(LOC[id].x-x,LOC[id].y-y)<70)ok=false}if(x>680&&y<320)ok=false;for(const rd of ROADS)for(const q of rd.pts)if(Math.hypot(q.x-x,q.y-y)<22)ok=false;for(const q of RIVER)if(Math.hypot(q.x-x,q.y-y)<18)ok=false;if(Math.hypot(x-420,y-490)<95)ok=false;if(!ok)continue;b.fillStyle='#2f5a36';b.beginPath();b.moveTo(x,y-14);b.lineTo(x+7,y+4);b.lineTo(x-7,y+4);b.closePath();b.fill();b.fillStyle='#5a3d22';b.fillRect(x-1,y+4,2,4)}
+  for(let i=0;i<70;i++){const x=r()*1000,y=170+r()*500;let ok=true;for(const id in LOC){const L=LOC[id];if(Math.hypot(L.x-x,L.y-y)<70||(L.w&&Math.abs(x-L.x)<L.w/2+14&&Math.abs(y-L.y)<L.h/2+24))ok=false}if(x>680&&y<320)ok=false;for(const rd of ROADS)for(const q of rd.pts)if(Math.hypot(q.x-x,q.y-y)<22)ok=false;for(const q of RIVER)if(Math.hypot(q.x-x,q.y-y)<18)ok=false;if(Math.hypot(x-420,y-490)<95)ok=false;if(!ok)continue;b.fillStyle='#2f5a36';b.beginPath();b.moveTo(x,y-14);b.lineTo(x+7,y+4);b.lineTo(x-7,y+4);b.closePath();b.fill();b.fillStyle='#5a3d22';b.fillRect(x-1,y+4,2,4)}
   for(const id in LOC)drawBuilding(b,id,LOC[id]);
   b.font='600 12.5px "Noto Sans TC",sans-serif';b.textAlign='center';
-  for(const id in LOC){const L=LOC[id];const ty=L.y-(L.kind==='gompa'?46:L.kind==='ridge'?30:36);b.lineWidth=4;b.strokeStyle='rgba(255,255,255,.88)';b.strokeText(L.name,L.x,ty);b.fillStyle='#1c2330';b.fillText(L.name,L.x,ty)}
+  for(const id in LOC){const L=LOC[id];const ty=L.w?L.y-L.h/2-8:L.y-(L.kind==='ridge'?30:36);b.lineWidth=4;b.strokeStyle='rgba(255,255,255,.88)';b.strokeText(L.name,L.x,ty);b.fillStyle='#1c2330';b.fillText(L.name,L.x,ty)}
 }
 function house(b,x,y,w,h,wall,roof){b.fillStyle='rgba(0,0,0,.14)';b.fillRect(x-w/2+3,y-h/2+4,w,h);b.fillStyle=wall;b.fillRect(x-w/2,y-h/2,w,h);b.fillStyle=roof;b.beginPath();b.moveTo(x-w/2-5,y-h/2+2);b.lineTo(x-w/2+6,y-h/2-12);b.lineTo(x+w/2-6,y-h/2-12);b.lineTo(x+w/2+5,y-h/2+2);b.closePath();b.fill();b.fillStyle='#4a3a2a';b.fillRect(x-4,y+h/2-11,8,11)}
-function drawBuilding(b,id,L){const x=L.x,y=L.y-6;
+function drawBuilding(b,id,L){if(L.w){drawInterior(b,id,L);return}const x=L.x,y=L.y-6;
   switch(L.kind){
     case'gompa':b.fillStyle='rgba(0,0,0,.15)';b.fillRect(x-38,y-10,80,34);b.fillStyle='#f3efe6';b.fillRect(x-40,y-12,80,32);b.fillStyle='#8e2434';b.fillRect(x-40,y-12,80,8);b.fillStyle='#d6a531';b.beginPath();b.moveTo(x-46,y-12);b.lineTo(x-28,y-26);b.lineTo(x+28,y-26);b.lineTo(x+46,y-12);b.closePath();b.fill();b.fillRect(x-2,y-36,4,10);b.beginPath();b.arc(x,y-38,4,0,7);b.fill();b.fillStyle='#4a2a1a';b.fillRect(x-5,y+6,10,14);break;
     case'ridge':{const cols=['#2a64b0','#f5f5f5','#c7312e','#2f8a45','#e2b52a'];for(let k=0;k<3;k++){const x0=x-70+k*48,y0=y-2+(k%2)*6;b.strokeStyle='#5a4a3a';b.lineWidth=2;b.beginPath();b.moveTo(x0,y0+18);b.lineTo(x0,y0-12);b.stroke();b.beginPath();b.moveTo(x0,y0-12);b.quadraticCurveTo(x0+24,y0,x0+48,y0-12);b.strokeStyle='rgba(60,50,40,.5)';b.lineWidth=1;b.stroke();for(let j=0;j<8;j++){const tx=x0+3+j*5.6,ty=y0-12+Math.sin((j+.5)/8*Math.PI)*6;b.fillStyle=cols[(j+k)%5];b.fillRect(tx,ty,4.5,7)}}b.strokeStyle='#5a4a3a';b.lineWidth=2;b.beginPath();b.moveTo(x+74,y+4);b.lineTo(x+74,y-26);b.stroke();break}
@@ -735,11 +918,86 @@ function drawRoads(b){
     const cols=['#2a64b0','#f5f5f5','#c7312e','#2f8a45','#e2b52a'];for(let j=0;j<7;j++){b.fillStyle=cols[j%5];b.fillRect(-16+j*5,-10+Math.sin((j+.5)/7*Math.PI)*.8,3.5,4)}
     b.restore()}
 }
+/* ============ Roofless interiors (top-down cutaway) ============ */
+function sh(b,x,y,w,h){b.fillStyle='rgba(0,0,0,.18)';b.fillRect(x+1.5,y+2,w,h)}
+function furn(b,x,y,w,h,c,edge){sh(b,x,y,w,h);b.fillStyle=c;b.fillRect(x,y,w,h);b.fillStyle='rgba(255,255,255,.18)';b.fillRect(x,y,w,1.5);if(edge){b.strokeStyle=edge;b.lineWidth=.8;b.strokeRect(x+.4,y+.4,w-.8,h-.8)}}
+function disc(b,x,y,r,c){b.fillStyle='rgba(0,0,0,.18)';b.beginPath();b.arc(x+1.2,y+1.6,r,0,7);b.fill();b.fillStyle=c;b.beginPath();b.arc(x,y,r,0,7);b.fill()}
+function bed(b,x,y,w,h,blanket,check){furn(b,x,y,w,h,'#f4f1ea');b.fillStyle='#ffffff';b.fillRect(x+1.5,y+1.5,w-3,5);b.fillStyle=blanket;b.fillRect(x+1,y+8,w-2,h-9);
+  if(check){b.fillStyle='rgba(255,255,255,.28)';for(let i=x+3;i<x+w-2;i+=4)b.fillRect(i,y+8,1.5,h-9);for(let j=y+10;j<y+h-1;j+=4)b.fillRect(x+1,j,w-2,1.5)}}
+function doorPos(L){const x0=L.x-L.w/2,y0=L.y-L.h/2;return L.door==='top'?{x:L.x,y:y0,hz:1}:L.door==='left'?{x:x0,y:L.y+L.h/4,hz:0}:L.door==='right'?{x:x0+L.w,y:L.y+L.h/4,hz:0}:{x:L.x,y:y0+L.h,hz:1}}
+function room(b,L,floor,wall,pat){const x0=L.x-L.w/2,y0=L.y-L.h/2,w=L.w,h=L.h,r=mulberry(L.x*7+L.y);
+  b.fillStyle='rgba(0,0,0,.2)';b.fillRect(x0+4,y0+6,w,h);
+  b.fillStyle=floor;b.fillRect(x0,y0,w,h);
+  if(pat==='plank'){b.strokeStyle='rgba(60,35,15,.18)';b.lineWidth=1;for(let yy=y0+7;yy<y0+h;yy+=7){b.beginPath();b.moveTo(x0,yy);b.lineTo(x0+w,yy);b.stroke();const o=r()*40;for(let xx=x0+o;xx<x0+w;xx+=40){b.beginPath();b.moveTo(xx,yy-7);b.lineTo(xx,yy);b.stroke()}}}
+  if(pat==='tile'){b.strokeStyle='rgba(60,70,80,.13)';b.lineWidth=1;for(let xx=x0+10;xx<x0+w;xx+=10){b.beginPath();b.moveTo(xx,y0);b.lineTo(xx,y0+h);b.stroke()}for(let yy=y0+10;yy<y0+h;yy+=10){b.beginPath();b.moveTo(x0,yy);b.lineTo(x0+w,yy);b.stroke()}}
+  if(pat==='stone'){for(let i=0;i<50;i++){b.fillStyle=r()<.5?'rgba(0,0,0,.07)':'rgba(255,255,255,.12)';b.beginPath();b.ellipse(x0+r()*w,y0+r()*h,3+r()*5,2+r()*3,0,0,7);b.fill()}}
+  b.strokeStyle=wall;b.lineWidth=6;b.strokeRect(x0,y0,w,h);
+  b.fillStyle=wall;b.fillRect(x0-3,y0-3,w+6,8);b.fillStyle='rgba(0,0,0,.18)';b.fillRect(x0+3,y0+5,w-6,3);
+  const d=doorPos(L);b.fillStyle=floor;
+  if(d.hz){b.fillRect(d.x-10,d.y-4,20,9);b.fillStyle='#8a5a3a';b.fillRect(d.x-9,d.y+(L.door==='top'?-9:4),18,5)}
+  else{b.fillRect(d.x-4,d.y-10,9,20);b.fillStyle='#8a5a3a';b.fillRect(d.x+(L.door==='left'?-9:4),d.y-9,5,18)}
+  return{x0,y0,w,h}}
+function drawInterior(b,id,L){
+  const k=L.kind;
+  if(k==='teahouse'){const R=room(b,L,'#c99d68','#6b4a2e','plank'),{x0,y0,w,h}=R;
+    furn(b,x0+8,y0+9,56,12,'#7c5230','#5a3a20');[[16,'#c9c9c9'],[28,'#b87333'],[40,'#c9c9c9'],[52,'#2c6687']].forEach(([dx,c])=>disc(b,x0+dx,y0+15,3.2,c));
+    furn(b,x0+w-30,y0+9,22,16,'#3b3633');b.fillStyle='rgba(255,110,40,.85)';b.beginPath();b.arc(x0+w-19,y0+17,3.5,0,7);b.fill();disc(b,x0+w-24,y0+13,3,'#9a9a9a');
+    for(let i=0;i<5;i++)disc(b,x0+74+i*6,y0+12,2.2,['#c7312e','#e2b52a','#2f8a45','#2a64b0','#f5f5f5'][i]);
+    for(const[tx,ty]of[[x0+28,y0+52],[x0+64,y0+64],[x0+100,y0+48]]){for(let a=0;a<3;a++){disc(b,tx+Math.cos(a*2.1)*11,ty+Math.sin(a*2.1)*9,3,'#5c3d22')}disc(b,tx,ty,7.5,'#8a5a34');disc(b,tx+1.5,ty-1.5,2.2,'#f2e6c8')}
+    b.fillStyle='#b8323f';b.fillRect(x0+w-24,y0+h-26,16,16);b.fillStyle='#e2b52a';b.fillRect(x0+w-21,y0+h-23,10,10)}
+  else if(k==='lodge'){const{x0,y0,w,h}=room(b,L,'#b38859','#5a3b2a','plank');
+    b.strokeStyle='#5a3b2a';b.lineWidth=3;for(const f of[1/3,2/3]){b.beginPath();b.moveTo(x0+w*f,y0);b.lineTo(x0+w*f,y0+h*.46);b.stroke()}
+    b.beginPath();b.moveTo(x0,y0+h*.46);for(let i=0;i<3;i++){b.lineTo(x0+w*i/3+8,y0+h*.46);b.moveTo(x0+w*i/3+22,y0+h*.46);b.lineTo(x0+w*(i+1)/3,y0+h*.46)}b.stroke();
+    ['#b8323f','#2c6687','#3d7a4a'].forEach((c,i)=>bed(b,x0+w*i/3+w/6-10,y0+8,20,26,c));
+    b.fillStyle='#8e2434';b.beginPath();b.ellipse(L.x-8,y0+h*.72,24,11,0,0,7);b.fill();b.strokeStyle='#e2b52a';b.lineWidth=1.2;b.beginPath();b.ellipse(L.x-8,y0+h*.72,18,7,0,0,7);b.stroke();
+    furn(b,x0+w-36,y0+h-26,28,11,'#6e4a2c','#4a3020');disc(b,x0+w-28,y0+h-22,2.5,'#f2e6c8');
+    furn(b,x0+8,y0+h-22,9,12,'#2a5f9e');furn(b,x0+19,y0+h-20,8,10,'#c7612e')}
+  else if(k==='school'){const{x0,y0,w,h}=room(b,L,'#dccaa3','#8a6a3a','plank');
+    furn(b,L.x-32,y0+7,64,9,'#2f4a3a');b.strokeStyle='rgba(255,255,255,.7)';b.lineWidth=.8;b.beginPath();b.moveTo(L.x-26,y0+11);b.lineTo(L.x-8,y0+11);b.moveTo(L.x-2,y0+12);b.lineTo(L.x+14,y0+10);b.stroke();
+    furn(b,L.x-14,y0+20,28,9,'#8a5a34');
+    for(let r=0;r<3;r++)for(let c=0;c<4;c++)furn(b,x0+16+c*26,y0+38+r*15,16,7,'#a8763f');
+    furn(b,x0+6,y0+10,9,40,'#6e4a2c');for(let i=0;i<6;i++){b.fillStyle=['#c7312e','#2a64b0','#e2b52a','#2f8a45'][i%4];b.fillRect(x0+7,y0+12+i*6,7,4)}
+    b.fillStyle='#c7312e';b.beginPath();b.arc(x0+w-12,y0+14,4,0,7);b.fill()}
+  else if(k==='health'){const{x0,y0,w,h}=room(b,L,'#e4e9ec','#8f9aa6','tile');
+    bed(b,x0+w-30,y0+10,22,28,'#7fa7c9');bed(b,x0+w-30,y0+44,22,28,'#7fa7c9');b.strokeStyle='#9fc4c4';b.lineWidth=2;b.beginPath();b.moveTo(x0+w-36,y0+8);b.lineTo(x0+w-36,y0+74);b.stroke();
+    furn(b,x0+8,y0+9,34,11,'#dfe4ea','#9aa4ae');for(let i=0;i<8;i++){b.fillStyle=['#c7312e','#2a64b0','#e2b52a','#2f8a45'][i%4];b.fillRect(x0+11+i*4,y0+12,2.5,5)}
+    furn(b,x0+14,y0+34,26,14,'#b88a5a');b.fillStyle='#fff';b.fillRect(x0+18,y0+37,8,6);
+    furn(b,x0+10,y0+h-16,36,7,'#8a6a4a');
+    b.fillStyle='#c7312e';b.fillRect(L.x-2,y0+12,4,12);b.fillRect(L.x-6,y0+16,12,4)}
+  else if(k==='bus'){const{x0,y0,w,h}=room(b,L,'#cdbb9c','#4f6480','tile');
+    for(let r=0;r<2;r++)for(let c=0;c<8;c++){b.fillStyle=(r+c)%3?'#e9dfc9':'#f7f0de';b.fillRect(x0+30+c*9,y0+8+r*8,8,7);b.strokeStyle='#8a7a5a';b.lineWidth=.5;b.strokeRect(x0+30+c*9,y0+8+r*8,8,7)}
+    furn(b,x0+26,y0+28,76,10,'#7c5230','#5a3a20');b.fillStyle='#bfe0f0';b.fillRect(x0+40,y0+30,14,6);b.fillRect(x0+72,y0+30,14,6);
+    for(const[px,py,s]of[[x0+w-24,y0+h-24,12],[x0+w-14,y0+h-20,9],[x0+w-22,y0+h-36,10]]){furn(b,px,py,s,s,'#b08050');b.strokeStyle='#e2d0a0';b.lineWidth=1;b.beginPath();b.moveTo(px+s/2,py);b.lineTo(px+s/2,py+s);b.stroke()}
+    furn(b,x0+30,y0+h-16,40,7,'#8a6a4a');b.fillStyle='#e2b52a';b.fillRect(x0+8,y0+9,16,10);b.fillStyle='#1c2330';b.fillRect(x0+10,y0+12,12,1.2);b.fillRect(x0+10,y0+15,9,1.2)}
+  else if(k==='mill'){const{x0,y0,w,h}=room(b,L,'#b8ad9b','#6a5a4a','stone');
+    b.strokeStyle='#6a4a2a';b.lineWidth=3;b.beginPath();b.arc(x0-8,L.y+2,14,0,7);b.stroke();for(let j=0;j<8;j++){const an=j*Math.PI/4;b.lineWidth=1.5;b.beginPath();b.moveTo(x0-8,L.y+2);b.lineTo(x0-8+Math.cos(an)*14,L.y+2+Math.sin(an)*14);b.stroke()}
+    disc(b,x0+30,L.y+2,15,'#8e8b86');disc(b,x0+30,L.y+2,11,'#a3a09a');disc(b,x0+30,L.y+2,3,'#5a5650');b.fillStyle='#c9b27a';b.beginPath();b.arc(x0+30,L.y+2,20,.4,1.2);b.lineTo(x0+30,L.y+2);b.fill();
+    for(const[sx,sy]of[[x0+60,y0+h-18],[x0+70,y0+h-14],[x0+64,y0+h-26]]){b.fillStyle='#e6d6ae';b.beginPath();b.ellipse(sx,sy,6,4.5,0,0,7);b.fill();b.strokeStyle='#b8a47a';b.lineWidth=.7;b.stroke()}
+    bed(b,x0+w-26,y0+9,18,24,'#9c4a3a',true)}
+  else if(k==='factory'){const{x0,y0,w,h}=room(b,L,'#cac5b9','#5d5d55','tile');
+    for(let i=0;i<3;i++){furn(b,x0+10,y0+10+i*13,70,8,'#7a6a50');const r=mulberry(i+3);b.fillStyle='#5f8a3f';for(let j=0;j<22;j++)b.fillRect(x0+12+r()*66,y0+11.5+i*13+r()*4,2.2,1.6)}
+    disc(b,x0+w-28,y0+22,12,'#77756f');disc(b,x0+w-28,y0+22,7,'#999690');
+    furn(b,x0+w-44,y0+h-28,34,18,'#3a3835');b.fillStyle='rgba(255,130,40,.8)';b.fillRect(x0+w-40,y0+h-18,26,4);
+    for(let i=0;i<3;i++){b.fillStyle='#e6d6ae';b.beginPath();b.ellipse(x0+18+i*12,y0+h-14,5.5,4,0,0,7);b.fill()}}
+  else if(k==='gompa'){const{x0,y0,w,h}=room(b,L,'#8e4a31','#efe8da','plank');
+    b.fillStyle='#8e2434';b.fillRect(x0-3,y0-3,w+6,6);
+    furn(b,L.x-24,y0+8,48,14,'#d6a531');b.fillStyle='#e07a1a';b.beginPath();b.ellipse(L.x,y0+18,7,5,0,0,7);b.fill();b.fillStyle='#f0c24a';b.beginPath();b.arc(L.x,y0+12,3.8,0,7);b.fill();
+    for(let i=0;i<6;i++){const lx=L.x-20+i*8;b.fillStyle='rgba(255,210,90,.35)';b.beginPath();b.arc(lx,y0+26,3.2,0,7);b.fill();b.fillStyle='#ffd24a';b.beginPath();b.arc(lx,y0+26,1.4,0,7);b.fill()}
+    for(let r=0;r<3;r++)for(const sx of[-1,1])furn(b,L.x+sx*24-10,y0+36+r*14,20,7,'#a02a3a');
+    for(const[px,py]of[[x0+14,y0+30],[x0+w-14,y0+30],[x0+14,y0+h-14],[x0+w-14,y0+h-14]])disc(b,px,py,3.6,'#b8323f');
+    for(let i=0;i<4;i++)furn(b,x0+5,y0+38+i*9,5,6,'#d6a531')}
+  else{const{x0,y0,w,h}=room(b,L,id==='h_gurung'?'#b98c5d':'#b58454',id==='h_gurung'?'#7d7468':'#6a5a4a','plank');
+    bed(b,x0+w-28,y0+9,20,26,id==='h_gurung'?'#3d7a4a':'#2c6687',id==='h_gurung');
+    furn(b,x0+7,y0+9,20,12,'#3b3633');b.fillStyle='rgba(255,110,40,.8)';b.beginPath();b.arc(x0+17,y0+15,3,0,7);b.fill();disc(b,x0+34,y0+13,3.5,'#b87333');
+    disc(b,L.x-8,L.y+10,8,'#8a5a34');disc(b,L.x-20,L.y+10,3,'#5c3d22');disc(b,L.x+4,L.y+10,3,'#5c3d22');
+    if(id==='h_rai'){furn(b,x0+w-30,y0+h-18,22,10,'#6e4a2c');b.fillStyle='#f2f2f2';b.fillRect(x0+w-27,y0+h-16,6,5);b.fillStyle='#c7312e';b.fillRect(x0+w-19,y0+h-16,5,5)}
+    else{b.fillStyle='#c7612e';b.beginPath();b.ellipse(x0+w-22,y0+h-16,14,7,0,0,7);b.fill()}}
+}
 function nightAlpha(t){const h=(t%DAY)/60;if(h>=6.5&&h<17.5)return 0;if(h>=17.5&&h<20)return (h-17.5)/2.5*.5;if(h>=20||h<5)return .5;if(h>=5&&h<6.5)return .5*(1-(h-5)/1.5);return 0}
 
 /* ============ Walking along the roads at a human pace ============ */
 const GRAPH={};for(const r of ROADS){(GRAPH[r[0]]=GRAPH[r[0]]||[]).push(r);(GRAPH[r[1]]=GRAPH[r[1]]||[]).push(r)}
-const PACE={maya:.8,kesang:.85,pasang:.92,nima:1.12,bikash:1.1};
+const PACE={you:1.5,maya:.8,kesang:.85,pasang:.92,nima:1.12,bikash:1.1};
 let curTps=1;
 function route(from,to){
   const dist={},prev={},Q=new Set(Object.keys(NODE));for(const k of Q)dist[k]=Infinity;dist[from]=0;
@@ -753,11 +1011,15 @@ function route(from,to){
   return out}
 function nearestNode(x,y){let b=null,bd=Infinity;for(const id in NODE){const p=NODE[id],d=Math.hypot(p.x-x,p.y-y);if(d<bd){bd=d;b=id}}return b}
 function walk(a,dt){
+  if(a.dragging)return;
   if(a.pathLoc!==a.loc){
     let keep=[],from=a.pathLoc||a.home;const idx=a.path.findIndex(p=>p.node);
     if(idx>=0){keep=a.path.slice(0,idx+1);from=a.path[idx].node}
     else if(Math.hypot(a.x-NODE[from].x,a.y-NODE[from].y)>120)from=nearestNode(a.x,a.y);
-    const r=route(from,a.loc);a.path=keep.length?keep.concat(r.slice(1)):r;a.pathLoc=a.loc}
+    const r=route(from,a.loc);a.path=keep.length?keep.concat(r.slice(1)):r;a.pathLoc=a.loc;
+    if(a.id!=='you'&&awake(a))for(const b of A){if(b!==a&&b.pathLoc===a.loc&&b.path.length>4&&awake(b)&&a.acq.has(b.id)&&Math.hypot(a.x-b.x,a.y-b.y)<70){
+      sayNow(a.id,`${b.name}，一起走吧！`,2000);sayNow(b.id,'好啊！',1800,600);remember(a,'obs',`和${b.name}一起走去${LOC[a.loc].name}`,2,[b.id,a.loc],S.t);remember(b,'obs',`和${a.name}一起走去${LOC[a.loc].name}`,2,[a.id,a.loc],S.t);
+      addLog({t:S.t,type:'chat',who:[a.id,b.id],text:`${a.name}和${b.name}一起走向${LOC[a.loc].name}。`});break}}}
   const pace=PACE[a.id]||1,vmax=58*Math.sqrt(Math.max(1,curTps))*pace;
   const s=slot(a),ds=Math.hypot(s.x-a.x,s.y-a.y);
   const want=a.path.length?vmax:Math.min(vmax,ds<.6?0:4+ds*2.2);
@@ -847,6 +1109,7 @@ function drawPerson(c,a,x,y,s,ph,face,opt={}){
   c.fillStyle='rgba(220,90,80,.25)';c.beginPath();c.arc(hx0+3.2,hy0+1.6,1.2,0,7);c.fill();
   c.restore();c.restore();
 }
+LOOK.you={skin:'#e6c09c',hair:'#4a3020',hs:'short',top:'#2f6fb0',bot:'#3a3a40',pack:true,band:'#f0c040'};
 const PORTRAIT={};
 function makePortraits(){for(const a of P){const cc=document.createElement('canvas');cc.width=cc.height=96;const c=cc.getContext('2d');
   c.fillStyle='#dfe8ee';c.fillRect(0,0,96,96);c.fillStyle=a.color;c.globalAlpha=.28;c.beginPath();c.arc(48,96,44,0,7);c.fill();c.globalAlpha=1;
@@ -859,34 +1122,103 @@ function drawMap(dt){
   const na=nightAlpha(t);
   if(na>0){g.fillStyle=`rgba(14,20,48,${na})`;g.fillRect(0,0,1000,680);
     g.fillStyle=`rgba(255,255,255,${na*1.4})`;const r=mulberry(3);for(let i=0;i<50;i++){const x=r()*1000,y=r()*70;g.fillRect(x,y,1.5,1.5)}
-    g.fillStyle=`rgba(255,205,110,${Math.min(1,na*1.8)})`;for(const id in LOC){const L=LOC[id];if(L.kind==='ridge'||L.kind==='market')continue;g.fillRect(L.x-14,L.y-12,5,5);g.fillRect(L.x+9,L.y-12,5,5)}}
+    for(const id in LOC){const L=LOC[id];if(!L.w)continue;const lit=A.some(a=>a.loc===id&&awake(a));g.fillStyle=`rgba(255,196,110,${na*(lit?.62:.25)})`;g.fillRect(L.x-L.w/2+3,L.y-L.h/2+3,L.w-6,L.h-6)}}
+  const now=performance.now();
+  for(let i=SPEECH.length-1;i>=0;i--){const s=SPEECH[i];if(s.at<=now){const w=who(s.id);if(w&&now-s.at<1200)w.say={x:s.x,until:now+s.dur};SPEECH.splice(i,1)}}
+  drawEffects(now);
   const counts={};A.forEach(a=>counts[a.loc]=(counts[a.loc]||0)+1);
   for(const a of A)walk(a,dt);
-  for(const a of A){if(a.chatWith&&t<a.chatUntil&&a.id<a.chatWith){const b=AG[a.chatWith];g.strokeStyle='rgba(255,255,255,.95)';g.lineWidth=2;g.setLineDash([3,3]);g.beginPath();g.moveTo(a.x,a.y-24);g.lineTo(b.x,b.y-24);g.stroke();g.setLineDash([])}}
-  const order=[...A].sort((p,q)=>p.y-q.y);
+  if(PL.joined){walk(PL,dt);const s=slot(PL);if(!PL.arrived&&!PL.path.length&&Math.hypot(s.x-PL.x,s.y-PL.y)<2){PL.arrived=true;onPlayerArrive()}}
+  greetings(now);
+  for(const a of A){if(a.chatWith&&t<a.chatUntil&&(a.chatWith==='you'||a.id<a.chatWith)){const b=who(a.chatWith);if(!b||(b===PL&&!PL.joined)||Math.hypot(a.x-b.x,a.y-b.y)>130)continue;g.strokeStyle='rgba(255,255,255,.95)';g.lineWidth=2;g.setLineDash([3,3]);g.beginPath();g.moveTo(a.x,a.y-24);g.lineTo(b.x,b.y-24);g.stroke();g.setLineDash([])}}
+  if(drag&&drag.moved&&drag.hover){const L=LOC[drag.hover];g.strokeStyle='#ffd24a';g.lineWidth=3;g.setLineDash([6,4]);g.beginPath();g.ellipse(L.x,L.y+22,72,42,0,0,7);g.stroke();g.setLineDash([])}
+  if(EVMODE){g.fillStyle='rgba(255,210,74,.10)';g.fillRect(0,0,1000,680)}
+  const order=(PL.joined?[...A,PL]:[...A]).sort((p,q)=>p.y-q.y);
   for(const a of order){
+    const speaking=a.say&&now<a.say.until;
+    if(a===PL){g.fillStyle='rgba(240,192,64,.45)';g.beginPath();g.ellipse(a.x,a.y,11,4,0,0,7);g.fill();drawPerson(g,PL,PL.x,PL.y,1,PL.ph||0,PL.face||1);
+      g.font='700 11.5px "Noto Sans TC",sans-serif';g.textAlign='center';g.lineWidth=3.5;g.strokeStyle='rgba(255,255,255,.9)';g.strokeText('你·'+PL.name,a.x,a.y+13);g.fillStyle='#8a5a00';g.fillText('你·'+PL.name,a.x,a.y+13);continue}
     const asleep=!awake(a),chatting=a.chatWith&&t<a.chatUntil;
-    if(chatting&&!(a.v>1)){const b=AG[a.chatWith];a.face=b.x<a.x?-1:1}
-    if(a.id===S.sel){g.fillStyle='rgba(255,210,74,.55)';g.beginPath();g.ellipse(a.x,a.y,13,4.5,0,0,7);g.fill();g.strokeStyle='#ffd24a';g.lineWidth=2;g.stroke()}
-    if(asleep&&!(a.v>1)){g.save();g.globalAlpha=.8;g.translate(a.x,a.y-3);g.rotate(-Math.PI/2*a.face);drawPerson(g,a,0,0,1.05,0,a.face,{noShadow:true});g.restore();
+    if(chatting&&!(a.v>1)){const b=who(a.chatWith);if(b)a.face=b.x<a.x?-1:1}
+    if(a.id===S.sel){g.fillStyle='rgba(255,210,74,.55)';g.beginPath();g.ellipse(a.x,a.y,11,4,0,0,7);g.fill();g.strokeStyle='#ffd24a';g.lineWidth=2;g.stroke()}
+    if(asleep&&!(a.v>1)&&!a.dragging){g.save();g.globalAlpha=.8;g.translate(a.x,a.y-3);g.rotate(-Math.PI/2*a.face);drawPerson(g,a,0,0,.85,0,a.face,{noShadow:true});g.restore();
       g.fillStyle='rgba(255,255,255,.9)';g.font='700 10px sans-serif';g.textAlign='center';g.fillText('z',a.x+12,a.y-12);g.font='700 8px sans-serif';g.fillText('z',a.x+17,a.y-18)}
-    else drawPerson(g,a,a.x,a.y,1.25,a.ph||0,a.face||1);
-    if(!asleep&&(a.id===S.sel||chatting||counts[a.loc]<=3)){
+    else drawPerson(g,a,a.x,a.y-(a.dragging?6:0),1,a.dragging?now/80:(a.ph||0),a.face||1);
+    if(!asleep&&!speaking&&(a.id===S.sel||chatting||counts[a.loc]<=3)){
       const lbl=chatting?'聊天':(a.cur?ACT[a.cur.act].ab:'');g.font='500 10.5px "Noto Sans TC",sans-serif';g.textAlign='center';const w=g.measureText(lbl).width+10;
-      const bx=a.x-w/2,by=a.y-(LOOK[a.id].hat==='sun'||LOOK[a.id].doko?70:64);g.fillStyle=chatting?'#fff6d6':'rgba(255,255,255,.92)';roundRect(g,bx,by,w,15,4);g.fill();g.fillStyle='#1c2330';g.fillText(lbl,a.x,by+11)}
-    if(a.id===S.sel){g.font='700 11.5px "Noto Sans TC",sans-serif';g.textAlign='center';g.lineWidth=3.5;g.strokeStyle='rgba(255,255,255,.9)';g.strokeText(a.name,a.x,a.y+15);g.fillStyle='#1c2330';g.fillText(a.name,a.x,a.y+15)}
+      const bx=a.x-w/2,by=a.y-(LOOK[a.id].hat==='sun'||LOOK[a.id].doko?58:52);g.fillStyle=chatting?'#fff6d6':a.override?'#ffe1d6':'rgba(255,255,255,.92)';roundRect(g,bx,by,w,15,4);g.fill();g.fillStyle='#1c2330';g.fillText(lbl,a.x,by+11)}
+    if(a.id===S.sel){g.font='700 11.5px "Noto Sans TC",sans-serif';g.textAlign='center';g.lineWidth=3.5;g.strokeStyle='rgba(255,255,255,.9)';g.strokeText(a.name,a.x,a.y+13);g.fillStyle='#1c2330';g.fillText(a.name,a.x,a.y+13)}
   }
+  drawFire(now);
+  if(S.rain&&S.t<S.rain.until){g.fillStyle='rgba(40,60,90,.18)';g.fillRect(0,0,1000,680);g.strokeStyle='rgba(215,228,245,.6)';g.lineWidth=1;g.beginPath();for(let i=0;i<170;i++){const x=((i*73.3+now*.12)%1060)-30,y=((i*131.7+now*.75)%720)-20;g.moveTo(x,y);g.lineTo(x-4,y+13)}g.stroke()}
+  const placed=[],talk=order.filter(a=>a.say&&now<a.say.until).sort((p,q)=>((q===PL||q.id===S.sel)-(p===PL||p.id===S.sel))||(q.say.until-p.say.until)).slice(0,4);
+  for(const a of talk.sort((p,q)=>q.y-p.y))drawSpeech(a,placed);
 }
+function wrapText(s,n){const out=[];let cur='';for(const ch of s){cur+=ch;if(cur.length>=n){out.push(cur);cur=''}}if(cur)out.push(cur);if(out.length>2){out.length=2;out[1]=out[1].slice(0,n-1)+'…'}return out}
+function drawSpeech(a,placed){const lines=wrapText(a.say.x,15);g.font='500 11px "Noto Sans TC",sans-serif';g.textAlign='left';
+  const w=Math.max(...lines.map(l=>g.measureText(l).width))+14,h=lines.length*14+8;
+  const x=Math.min(1000-w-4,Math.max(4,a.x-w/2));let y=a.y-(LOOK[a.id]&&(LOOK[a.id].hat==='sun'||LOOK[a.id].doko)?50:44)-h;if(y<4)y=4;
+  for(let k=0;k<4;k++){const hit=placed.find(r=>x<r.x+r.w&&x+w>r.x&&y<r.y+r.h&&y+h>r.y);if(!hit)break;y=hit.y-h-4;if(k===3||y<2)return}placed.push({x,y,w,h});
+  g.fillStyle='rgba(0,0,0,.16)';roundRect(g,x+2,y+2,w,h,6);g.fill();
+  g.fillStyle=a===PL?'#fff3c4':'#ffffff';roundRect(g,x,y,w,h,6);g.fill();g.beginPath();g.moveTo(a.x-5,y+h-.5);g.lineTo(a.x+5,y+h-.5);g.lineTo(a.x,y+h+7);g.closePath();g.fill();
+  g.strokeStyle=a.color||'#c98a12';g.lineWidth=1.5;roundRect(g,x,y,w,h,6);g.stroke();
+  g.fillStyle='#1c2330';lines.forEach((l,i)=>g.fillText(l,x+7,y+15+i*14))}
+const GREET={};const pickR=arr=>arr[Math.floor(Math.random()*arr.length)];
+function greetings(now){for(let i=0;i<A.length;i++)for(let j=i+1;j<A.length;j++){const a=A[i],b=A[j];
+  if(!(a.v>8&&b.v>8)||Math.hypot(a.x-b.x,a.y-b.y)>28||!a.acq.has(b.id))continue;const k=a.id+b.id;if(GREET[k]&&now-GREET[k]<30000)continue;GREET[k]=now;
+  sayNow(a.id,greetWord(a,b)+'！',1800);sayNow(b.id,pickR([greetWord(b,a)+'！','嗨，'+a.name+'！','路上小心！']),1800,500);
+  if(S.running){remember(a,'obs',`在路上遇到${b.name}，打了聲招呼`,1,[b.id],S.t);remember(b,'obs',`在路上遇到${a.name}，打了聲招呼`,1,[a.id],S.t)}}}
+function drawFire(now){
+  for(const loc in S.fires){const L=LOC[loc];g.fillStyle='rgba(255,120,40,.2)';g.beginPath();g.arc(L.x,L.y-10,52+Math.sin(now/120)*5,0,7);g.fill();
+    for(let i=0;i<5;i++){const ph=((now/1500)+i/5)%1;g.fillStyle=`rgba(75,75,82,${.5*(1-ph)})`;g.beginPath();g.arc(L.x-6+Math.sin(ph*6+i)*12,L.y-34-ph*80,8+ph*16,0,7);g.fill()}
+    for(let i=0;i<9;i++){const x=L.x-32+i*8,fl=14+Math.sin(now/90+i*1.7)*5+Math.sin(now/53+i)*3;g.fillStyle=i%2?'rgba(255,190,50,.95)':'rgba(232,72,30,.95)';g.beginPath();g.moveTo(x-5,L.y-8);g.quadraticCurveTo(x-4,L.y-16-fl*.6,x,L.y-14-fl*1.5);g.quadraticCurveTo(x+4,L.y-16-fl*.6,x+5,L.y-8);g.fill()}}
+}
+function drawEffects(now){
+  {const h=(S.t%DAY)/60;if(dayOf(S.t)===2&&h>=16&&h<21){const L=LOC.teahouse,x0=L.x-L.w/2,y0=L.y-L.h/2;for(let i=0;i<22;i++){g.fillStyle=i%2?'#f08a1c':'#f7b733';g.beginPath();g.arc(x0+4+i*(L.w-8)/21,y0+2+Math.sin(i*.9)*1.5,2.4,0,7);g.fill()}for(const[lx,ly]of[[x0+12,y0+L.h-12],[x0+L.w-40,y0+30],[x0+46,y0+36],[x0+84,y0+74]]){g.fillStyle=`rgba(255,210,90,${.35+.15*Math.sin(now/200+lx)})`;g.beginPath();g.arc(lx,ly,6,0,7);g.fill();g.fillStyle='#ffd24a';g.beginPath();g.arc(lx,ly,2,0,7);g.fill()}}}
+  if(S.sale){const cs=['#c7312e','#2a64b0','#e2b52a','#2f8a45'];g.strokeStyle='#6a5a4a';g.lineWidth=1;g.beginPath();g.moveTo(350,452);g.quadraticCurveTo(420,470,490,452);g.stroke();
+    for(let i=0;i<12;i++){const x=356+i*11.5,y=452+Math.sin((i+.5)/12*Math.PI)*9;g.fillStyle=cs[i%4];g.beginPath();g.moveTo(x-4,y);g.lineTo(x+4,y);g.lineTo(x,y+8);g.closePath();g.fill()}
+    g.fillStyle='#c7312e';roundRect(g,392,420,56,20,4);g.fill();g.fillStyle='#fff';g.font='700 12px "Noto Sans TC",sans-serif';g.textAlign='center';g.fillText('大特價',420,434)}
+  if(S.busDelay){const L=LOC.bus;g.fillStyle='#e2b52a';roundRect(g,L.x-78,L.y-46,42,18,3);g.fill();g.fillStyle='#1c2330';g.font='700 11px "Noto Sans TC",sans-serif';g.textAlign='center';g.fillText('誤點',L.x-57,L.y-33)}
+}
+/* pointer: select, drag, move the player, place events */
+function toMap(ev){const r=cv.getBoundingClientRect();return{x:(ev.clientX-r.left)*1000/r.width,y:(ev.clientY-r.top)*680/r.height}}
+function hitAgent(p){let best=null,bd=22;for(const a of(PL.joined?[...A,PL]:A)){const d=Math.hypot(a.x-p.x,a.y-16-p.y);if(d<bd){bd=d;best=a}}return best}
+function nearestLoc(p,max=85){let b=null,bd=max;for(const id in LOC){const L=LOC[id],d=Math.hypot(L.x-p.x,L.y+10-p.y);if(d<bd){bd=d;b=id}}return b}
+let drag=null,EVMODE=null;
+function setEvMode(m){EVMODE=m;document.querySelectorAll('#evBar button[data-ev]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.ev===m));cv.style.cursor=m?'crosshair':''}
+cv.addEventListener('pointerdown',ev=>{const p=toMap(ev);
+  if(EVMODE){const L=nearestLoc(p,110);if(L)applyEvent(EVMODE,L);else setStatus('請點在建築物附近。');return}
+  const a=hitAgent(p);if(a){drag={a,moved:false,p0:p};try{cv.setPointerCapture(ev.pointerId)}catch(e){}ev.preventDefault();return}
+  if(PL.joined){const L=nearestLoc(p);if(L)movePlayer(L)}});
+cv.addEventListener('pointermove',ev=>{if(!drag)return;const p=toMap(ev);
+  if(!drag.moved&&Math.hypot(p.x-drag.p0.x,p.y-drag.p0.y)>6){drag.moved=true;drag.a.dragging=true;cv.style.cursor='grabbing'}
+  if(drag.moved){drag.a.x=p.x;drag.a.y=p.y+18;drag.hover=nearestLoc(p,95)}});
+cv.addEventListener('pointerup',ev=>{if(!drag)return;const d=drag;drag=null;cv.style.cursor=EVMODE?'crosshair':'';d.a.dragging=false;
+  if(!d.moved){if(d.a!==PL){if(PL.joined){if(d.a.loc!==PL.loc)movePlayer(d.a.loc);PL.talkTo=d.a.id;renderDock()}select(d.a.id);showTab('agent')}return}
+  const L=nearestLoc(toMap(ev),95);
+  if(d.a===PL){if(L){PL.loc=L;PL.pathLoc=L;PL.path=[];PL.arrived=false}else{PL.pathLoc=nearestNode(PL.x,PL.y);PL.path=[]}renderDock();return}
+  if(L)dropAgent(d.a,L);else{d.a.pathLoc=nearestNode(d.a.x,d.a.y);d.a.path=[]}});
+cv.addEventListener('pointercancel',()=>{if(drag){drag.a.dragging=false;drag=null}});
 function roundRect(c,x,y,w,h,r){c.beginPath();c.moveTo(x+r,y);c.arcTo(x+w,y,x+w,y+h,r);c.arcTo(x+w,y+h,x,y+h,r);c.arcTo(x,y+h,x,y,r);c.arcTo(x,y,x+w,y,r);c.closePath()}
-cv.addEventListener('click',ev=>{const r=cv.getBoundingClientRect();const x=(ev.clientX-r.left)*1000/r.width,y=(ev.clientY-r.top)*680/r.height;let best=null,bd=24;for(const a of A){const d=Math.hypot(a.x-x,a.y-20-y);if(d<bd){bd=d;best=a}}if(best){select(best.id);showTab('agent')}});
 
 /* ============ Rendering: panel ============ */
+function weatherInfo(t){const h=(t%DAY)/60;
+  if(S.rain&&t<S.rain.until)return{icon:'<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M7 15h10a4 4 0 0 0 .4-8A5.5 5.5 0 0 0 6.6 8.6 3.3 3.3 0 0 0 7 15z" fill="#8a99ad"/><g stroke="#4f86c6" stroke-width="1.8" stroke-linecap="round"><path d="M8 18l-1 3M12 18l-1 3M16 18l-1 3"/></g></svg>',text:'下大雨'};
+  if(h>=19||h<5.5)return{icon:'<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><path d="M15.5 3.5a8.5 8.5 0 1 0 5 13.9A7 7 0 0 1 15.5 3.5z" fill="#8fa3c8"/></svg>',text:'夜晚'};
+  return{icon:'<svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true"><circle cx="12" cy="12" r="4.5" fill="#e2a82a"/><g stroke="#e2a82a" stroke-width="2" stroke-linecap="round"><path d="M12 2.5v2.5M12 19v2.5M2.5 12h2.5M19 12h2.5M5.3 5.3l1.8 1.8M16.9 16.9l1.8 1.8M5.3 18.7l1.8-1.8M16.9 7.1l1.8-1.8"/></g></svg>',text:h>=17.5?'黃昏':'晴天'}}
+function renderClock(){const t=S.t,w=weatherInfo(t),d=dayOf(t);
+  $('#cDayN').textContent=pad(d);$('#cTime').textContent=hm(t);$('#cPhase').textContent=phase(t);$('#cWx').textContent=w.text+(Object.keys(S.fires).length?' · 有火警':'');
+  if($('#wIcon').dataset.k!==w.text){$('#wIcon').innerHTML=w.icon;$('#wIcon').dataset.k=w.text}
+  $('#cDate').textContent=d===1?'10 月 3 日 · 星期六':'10 月 4 日 · 星期日'}
+function renderLegend(){const t=S.t;
+  $('#roster').innerHTML=A.map(a=>{const chatting=a.chatWith&&t<a.chatUntil;const sel=a.id===S.sel;
+    const now=chatting?`和${who(a.chatWith).name}聊天`:!awake(a)?'睡覺中':(a.step&&a.cur.act!=='sleep'?a.step.text:a.cur.desc);
+    return `<button class="rcard" data-id="${a.id}" aria-pressed="${sel}"><img src="${PORTRAIT[a.id]}" alt="" style="border-color:${a.color}"><span class="rinfo"><b>${esc(a.name)}</b><span class="rmeta">${a.age} 歲 · ${esc(a.job)}</span><span class="rnow"><em>此刻正在 · ${esc(LOC[a.loc].name)}</em>${esc(now)}</span>${sel?'<a class="rmore" href="#panel">查看記憶與計畫 ↓</a>':''}</span></button>`}).join('')}
+$('#roster').addEventListener('click',e=>{if(e.target.closest('.rmore'))return;const b=e.target.closest('.rcard');if(b){select(b.dataset.id);showTab('agent')}});
+
 let dirty=true,logDirty=true;
 const TYPE={obs:['觀察','b-obs'],chat:['對話','b-chat'],plan:['計畫','b-plan'],reflection:['反思','b-refl'],seed:['種子','b-seed'],inner:['內心聲音','b-inner']};
 function phase(t){const h=(t%DAY)/60;return h<9?'清晨':h<12?'上午':h<14?'中午':h<17?'下午':h<20?'傍晚':'夜晚'}
-function renderClock(){$('#cDay').textContent=`第${dayOf(S.t)}天`;$('#cTime').textContent=hm(S.t);$('#cPhase').textContent=phase(S.t)}
-function renderLegend(){$('#legend').innerHTML=A.map(a=>`<button class="chip" data-id="${a.id}" aria-pressed="${a.id===S.sel}"><img src="${PORTRAIT[a.id]}" alt="" style="border-color:${a.color}">${esc(a.name)}</button>`).join('')}
-$('#legend').addEventListener('click',e=>{const b=e.target.closest('.chip');if(b){select(b.dataset.id);showTab('agent')}});
 function select(id){S.sel=id;$('#retOut').innerHTML='';$('#qMem').value='';renderLegend();renderAgentStatic();renderAgent();renderIV();renderIVQ();renderRun();renderSummary()}
 function renderAgentStatic(){const a=AG[S.sel];
   $('#aAv').style.background=`center/cover url(${PORTRAIT[a.id]})`;$('#aAv').style.borderColor=a.color;$('#aAv').textContent='';$('#aName').textContent=a.full;$('#aMeta').textContent=`${a.age} 歲 · ${a.job}`;
@@ -894,10 +1226,10 @@ function renderAgentStatic(){const a=AG[S.sel];
   $('#presets').innerHTML=['請介紹一下你自己。','你知道有誰要參選村代表嗎？','最近鎮上有什麼聚會嗎？','你明天打算做什麼？',a.id==='dolma'?'茶會準備得怎麼樣了？':'你對卓瑪有什麼印象？'].map(q=>`<button>${esc(q)}</button>`).join('')}
 function renderAgent(){const a=AG[S.sel],t=S.t;
   const chatting=a.chatWith&&t<a.chatUntil;
-  $('#aNow').innerHTML=`<span class="eyebrow">${stamp(t)} · ${esc(LOC[a.loc].name)}${a.step?' › '+esc(a.step.sub):''}</span><br>${chatting?`<b>正在和${esc(AG[a.chatWith].name)}聊天</b>`:`<b>${esc(a.cur.desc)}</b>${a.step&&a.cur.act!=='sleep'?'：'+esc(a.step.text):''}`}`
+  $('#aNow').innerHTML=`<span class="eyebrow">${stamp(t)} · ${esc(LOC[a.loc].name)}${a.step?' › '+esc(a.step.sub):''}</span><br>${chatting?`<b>正在和${esc(who(a.chatWith).name)}聊天</b>`:`<b>${esc(a.cur.desc)}</b>${a.step&&a.cur.act!=='sleep'?'：'+esc(a.step.text):''}`}`
     +`<br><span class="note">知道：${a.know.election?'帕桑參選':''}${a.know.election&&a.know.party?'、':''}${a.know.party?'燈節茶會'+(a.party==='yes'?'（會出席）':a.party==='no'?'（可能不去）':a.party==='host'?'（主辦人）':''):''}${!a.know.election&&!a.know.party?'（還沒聽說任何消息）':''} · 認識 ${a.acq.size} 人</span>`;
   const h=(t%DAY)/60;
-  let html='<ul class="plan">';
+  let html='<ul class="plan">'+(a.override?`<li class="cur chg"><span class="tm">臨時</span><span>${esc(a.override.desc)}<span class="note"> · 到 ${hm(a.override.until)} 為止（因事件改變計畫）</span></span></li>`:'');
   for(const b of a.plan){const cur=a.cur===b||(a.cur&&a.cur.start===b.start&&a.cur.act===b.act&&awake(a));
     html+=`<li class="${cur?'cur':''} ${b.added?'chg':''}"><span class="tm">${hh(b.start)}–${hh(b.end)}</span><span>${esc(b.desc)}<span class="note"> · ${esc(LOC[b.loc].name)}</span>${b.added?' <span class="note">（因邀約新增）</span>':''}</span></li>`;
     if(cur&&a.steps.length>1)html+=`<li style="display:block;padding:0"><ul class="steps">${a.steps.map(s=>`<li class="${s===a.step?'cur':''}">${hm(s.start)} ${esc(s.sub)}：${esc(s.text)}</li>`).join('')}</ul></li>`}
@@ -1066,19 +1398,20 @@ function renderTree(){$('#tree').textContent='貝瑪崗\n'+Object.entries(LOC).m
 
 /* ============ Controls & loop ============ */
 function setStatus(s){$('#status').textContent=s}
-$('#btnPlay').onclick=()=>{if(S.done)return;S.running=!S.running;$('#btnPlay').textContent=S.running?'暫停':'播放';setStatus(S.running?'模擬進行中。':'已暫停。')};
+$('#btnPlay').onclick=()=>{if(S.done)return;S.running=!S.running;$('#btnPlay').textContent=S.running?'❚❚ 暫停':'▶ 播放';setStatus(S.running?'模擬進行中。':'已暫停。')};
 $('#btnStep').onclick=()=>{if(!S.busy)tick()};
-$('#btnReset').onclick=()=>{if(ivCtl)ivCtl.abort();if(runCtl)runCtl.abort();const sel=S.sel,uc=S.useClaude;init();S.sel=sel;S.useClaude=uc;$('#btnPlay').disabled=false;$('#btnStep').disabled=false;$('#btnPlay').textContent='播放';setStatus('已重新開始。');select(sel)};
+$('#btnReset').onclick=()=>{if(ivCtl)ivCtl.abort();if(runCtl)runCtl.abort();SPEECH.length=0;setEvMode(null);resetPlayer();const sel=S.sel,uc=S.useClaude;init();S.sel=sel;S.useClaude=uc;$('#btnPlay').disabled=false;$('#btnStep').disabled=false;$('#btnPlay').textContent='▶ 播放';setStatus('已重新開始。');select(sel)};
+document.querySelectorAll('#evBar button[data-ev]').forEach(b=>b.onclick=()=>{const m=b.dataset.ev;if(m==='rain'||m==='sale'||m==='bus'){applyEvent(m,null);return}if(m==='custom'&&!$('#evText').value.trim()){setStatus('先在輸入框寫下事件內容，再按「放到地圖上」。');$('#evText').focus();return}if(EVMODE===m){setEvMode(null);setStatus('已取消。');return}setEvMode(m);setStatus(m==='fire'?'點地圖上的建築物，選擇失火的地點。':'點地圖上的地點，選擇事件發生的位置。')});
 $('#useClaude').onchange=e=>{S.useClaude=e.target.checked;setStatus(S.useClaude?'之後的每段對話都會交給 Claude 撰寫，生成時模擬會暫停。':'對話改回本機範本。')};
 let acc=0,prev=performance.now();
 function loop(now){const dt=Math.min(.1,(now-prev)/1000);prev=now;if(!S.running||S.done)curTps=1;
   if(S.running&&!S.busy&&!S.done){const allAsleep=A.every(a=>!awake(a));const tps=allAsleep?24:Number($('#speed').value);curTps=tps;acc+=dt*tps;let n=0;while(acc>=1&&n<30&&!S.busy&&!S.done){acc-=1;tick();n++}}
   drawMap(dt);
-  if(dirty){renderClock();if(tab==='agent')renderAgent();if(tab==='diff')renderDiff();dirty=false}
+  if(dirty){renderClock();renderLegend();if(PL.joined)renderDock();if(tab==='agent')renderAgent();if(tab==='diff')renderDiff();dirty=false}
   if(logDirty&&tab==='log'){renderLog();logDirty=false}
   requestAnimationFrame(loop)}
 
-init();setupCanvas();renderLegend();renderAgentStatic();renderAgent();renderIV();renderIVQ();renderRun();renderSummary();renderTree();
+init();setupCanvas();renderDock(true);renderLegend();renderAgentStatic();renderAgent();renderIV();renderIVQ();renderRun();renderSummary();renderTree();
 if(document.fonts&&document.fonts.ready)document.fonts.ready.then(()=>setupCanvas());
 requestAnimationFrame(loop);
 })();
